@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MIYOG, the reality engine</title>
+<meta name="description" content="MIYOG. A mind that is never told what is true. Only what happened. From that it builds its own numbers, its own physics, and eventually its own answers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ECE8DD; --paper-2:#E1DCCD; --pink:#141C2E; --pink-soft:#4B5570; --prule:#B9B3A3;
+  --blue:#0D2B55; --blue-2:#133A6C; --bink:#E7ECF3; --bink-soft:#9DB0CD; --brule:#2E5590;
+  --acc-p:#1F4FB8; --acc-b:#8FB3F2; --white:#F7F5EF;
+  --display:"Fraunces", Georgia, serif; --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --ease:cubic-bezier(.23,1,.32,1);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --paper:#ECE8DD; } }
+:root[data-theme="dark"]{ --paper:#ECE8DD; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; background:var(--blue); color:var(--bink); font-family:var(--display); font-optical-sizing:auto; font-size:clamp(1.05rem,1rem + .3vw,1.2rem); line-height:1.5; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+::selection{ background:var(--acc-b); color:var(--blue); }
+h1,h2,h3{ font-weight:300; margin:0; line-height:1.02; letter-spacing:-.025em; text-wrap:balance; }
+p{ margin:0; text-wrap:pretty; }
+button{ font:inherit; }
+canvas,svg{ display:block; max-width:100%; }
+.mono{ font-family:var(--mono); font-size:.85em; }
+:focus-visible{ outline:2px solid var(--acc-b); outline-offset:3px; }
+
+/* ---------- scenes: the frame holds, the content advances ---------- */
+.scene{ position:relative; }
+.scene .stage{ position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:clamp(1.5rem,4vw,5rem); padding:0 clamp(1.25rem,5vw,6rem); }
+.scene.paper{ background:var(--paper); color:var(--pink); --ink:var(--pink); --ink-soft:var(--pink-soft); --rule:var(--prule); --acc:var(--acc-p); }
+.scene.blue{ background:var(--blue); color:var(--bink); --ink:var(--bink); --ink-soft:var(--bink-soft); --rule:var(--brule); --acc:var(--acc-b); }
+.scene.blue .stage::before{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.5; background-image:linear-gradient(rgba(231,236,243,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(231,236,243,.06) 1px, transparent 1px); background-size:48px 48px; }
+.grain{ position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:multiply; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>"); }
+.blue .grain{ mix-blend-mode:screen; opacity:.06; }
+.viz{ position:relative; width:100%; height:min(72vh,72svh); display:grid; place-items:center; }
+.viz canvas,.viz svg{ width:100%; height:100%; }
+.cap{ position:relative; max-width:34ch; min-height:14rem; }
+.cap > *{ position:absolute; left:0; top:0; width:100%; opacity:0; transform:translateY(8px); transition:opacity .45s var(--ease), transform .45s var(--ease); pointer-events:none; }
+.cap > .on{ opacity:1; transform:none; pointer-events:auto; }
+.cap h2{ font-size:clamp(1.9rem,1.3rem + 2.4vw,3.6rem); }
+.cap p{ font-size:clamp(1.05rem,.95rem + .5vw,1.35rem); line-height:1.4; color:var(--ink); }
+.cap p .k{ color:var(--acc); }
+.cap .s{ display:block; margin-top:.8rem; font-family:var(--mono); font-size:.76rem; line-height:1.55; color:var(--ink-soft); }
+.cap .eyebrow{ display:block; font-family:var(--mono); font-size:.74rem; color:var(--ink-soft); margin-bottom:.8rem; letter-spacing:.02em; }
+.scene.viz-right .viz{ order:2; } .scene.viz-right .cap{ order:1; }
+.scene.viz-full .stage{ grid-template-columns:1fr; align-content:center; }
+.scene.viz-full .viz{ height:min(58vh,58svh); }
+.scene.viz-full .cap{ width:min(46ch,100%); max-width:none; min-height:10rem; margin:0 auto; text-align:center; justify-self:center; }
+.scene.text .stage{ grid-template-columns:1fr; }
+.scene.text .cap{ max-width:none; min-height:0; }
+@media (max-width:900px){
+  .bars{ max-height:44vh; overflow:auto; font-size:.7rem; } .bars .row{ padding:.15rem 0; } .bars .row .bar{ height:8px; } .bars .tot b{ font-size:1.6rem; }
+  .ledger{ gap:.5rem 1rem; font-size:.64rem; } .ledger span:nth-child(4),.ledger span:nth-child(6){ display:none; }
+  .scene .stage,.scene.viz-right .stage{ grid-template-columns:1fr; align-content:center; gap:1rem; padding-top:1.5rem; }
+  .scene.viz-right .viz{ order:1; } .scene.viz-right .cap{ order:2; }
+  .viz,.scene.viz-full .viz{ height:min(42vh,42svh); }
+  .cap{ min-height:11rem; max-width:none; text-align:left; }
+  .cap h2{ font-size:clamp(1.6rem,7vw,2.2rem); }
+}
+.stroke{ fill:none; stroke:var(--ink); stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round; }
+.stroke.acc{ stroke:var(--acc); }
+.stroke.soft{ stroke:var(--ink-soft); }
+.stroke.dim{ stroke:var(--ink-soft); stroke-dasharray:3 4; stroke-width:1; }
+.fill{ fill:var(--ink); }
+.fill.acc{ fill:var(--acc); }
+text.lab{ font-family:var(--mono); font-size:11px; fill:var(--ink); }
+text.lab.soft{ fill:var(--ink-soft); }
+text.lab.acc{ fill:var(--acc); }
+text.big{ font-family:var(--display); font-weight:300; fill:var(--ink); }
+
+/* progress rail: the story's spine */
+.rail{ position:fixed; left:calc(clamp(1.25rem,5vw,6rem) * .35); top:50%; transform:translateY(-50%); z-index:20; display:grid; gap:.55rem; }
+.rail button{ width:6px; height:6px; padding:0; border:0; border-radius:50%; background:var(--bink-soft); opacity:.45; cursor:pointer; transition:transform .2s var(--ease), opacity .2s; }
+.rail button.on{ opacity:1; transform:scale(1.6); background:var(--acc-b); }
+.rail button:hover{ opacity:1; }
+body[data-ground="paper"] .rail button{ background:var(--pink-soft); } body[data-ground="paper"] .rail button.on{ background:var(--acc-p); }
+.rail .name{ position:absolute; left:16px; top:50%; transform:translateY(-50%); font-family:var(--mono); font-size:.7rem; white-space:nowrap; color:var(--bink-soft); pointer-events:none; opacity:0; transition:opacity .3s; }
+body[data-ground="paper"] .rail .name{ color:var(--pink-soft); }
+.rail:hover .name{ opacity:1; }
+@media (max-width:900px){ .rail{ display:none; } }
+
+/* ledger of proofs, bottom edge */
+.ledger{ position:fixed; left:0; right:0; bottom:0; z-index:20; font-family:var(--mono); font-size:.7rem; padding:.45rem clamp(1.25rem,5vw,6rem) calc(.45rem + env(safe-area-inset-bottom,0px)); background:var(--paper); color:var(--pink); border-top:1px solid var(--prule); display:flex; gap:1.6rem; flex-wrap:wrap; transform:translateY(100%); transition:transform .5s var(--ease); }
+.ledger.show{ transform:none; }
+.ledger span{ color:var(--pink-soft); } .ledger b{ font-weight:500; color:var(--pink); }
+.ledger .kill{ text-decoration:line-through; }
+
+/* boot */
+.boot{ position:fixed; inset:0; z-index:90; background:var(--blue); color:var(--bink); display:grid; place-items:center; transition:opacity .7s var(--ease), visibility .7s; }
+.boot.off{ opacity:0; visibility:hidden; pointer-events:none; }
+.boot .tick{ width:2px; height:0; background:var(--bink); animation:tk .6s var(--ease) .3s forwards; }
+@keyframes tk{ to{ height:64px; } }
+.boot p{ position:absolute; top:calc(50% + 60px); left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:.8rem; color:var(--bink-soft); opacity:0; animation:fa .5s var(--ease) 1s forwards; white-space:nowrap; }
+@keyframes fa{ to{ opacity:1; } }
+.boot .skip{ position:absolute; bottom:1.4rem; right:1.4rem; background:none; border:0; color:var(--bink-soft); font-family:var(--mono); font-size:.72rem; cursor:pointer; }
+
+/* hover tips */
+#tip{ position:fixed; z-index:95; max-width:30ch; padding:.65rem .8rem; font-family:var(--mono); font-size:.75rem; line-height:1.5; background:var(--pink); color:var(--paper); opacity:0; transform:translateY(4px); transition:opacity .15s, transform .15s; pointer-events:none; }
+#tip.on{ opacity:1; transform:none; }
+dfn{ font-style:inherit; text-decoration:underline dotted var(--acc); text-underline-offset:.16em; cursor:help; }
+dfn:hover{ color:var(--acc); }
+
+/* budget bars */
+.bars{ width:100%; align-self:center; }
+.bars .row{ display:grid; grid-template-columns:minmax(0,1fr) 5rem; gap:1rem; align-items:center; padding:.3rem 0; font-family:var(--mono); font-size:.76rem; cursor:default; }
+.bars .row .bar{ height:12px; background:var(--rule); position:relative; overflow:hidden; }
+.bars .row .bar i{ position:absolute; left:0; top:0; bottom:0; width:0; background:var(--acc); transition:width .6s var(--ease); }
+.bars .row .l{ display:flex; justify-content:space-between; margin-bottom:.2rem; color:var(--ink-soft); }
+.bars .row .l b{ color:var(--ink); font-weight:500; }
+.bars .row .v{ text-align:right; font-variant-numeric:tabular-nums; }
+.bars .row:hover .l b{ color:var(--acc); }
+.bars .tot{ display:flex; justify-content:space-between; align-items:baseline; border-top:2px solid var(--ink); margin-top:.6rem; padding-top:.5rem; font-family:var(--mono); font-size:.76rem; }
+.bars .tot b{ font-family:var(--display); font-weight:300; font-size:2.4rem; letter-spacing:-.02em; }
+
+/* seats */
+.seat{ cursor:pointer; } .seat circle{ transition:r .2s var(--ease); } .seat:hover circle{ r:14; }
+
+/* finale */
+.final{ padding:clamp(4rem,10vw,9rem) clamp(1.25rem,5vw,6rem) clamp(6rem,10vw,9rem); background:var(--paper); color:var(--pink); position:relative; }
+.final .wrap{ max-width:1100px; margin:0 auto; }
+.final h2{ font-size:clamp(2rem,1.4rem + 3vw,4.2rem); max-width:22ch; }
+.final .ask{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.5rem; margin-top:2.5rem; }
+.final .ask > div{ border-top:1px solid var(--prule); padding-top:.8rem; }
+.final .ask b{ font-weight:400; font-size:1.35rem; display:block; letter-spacing:-.01em; margin-bottom:.25rem; }
+.final .ask p{ font-size:.92rem; color:var(--pink-soft); }
+.final .cols{ display:grid; grid-template-columns:1fr 1fr; gap:3rem; margin-top:3rem; font-size:.95rem; line-height:1.55; color:var(--pink-soft); }
+.final .sig{ font-size:1.5rem; color:var(--pink); margin-top:1.4rem; line-height:1.2; }
+.final .try{ margin-top:3rem; border-top:1px solid var(--prule); padding-top:1.5rem; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:2rem; }
+.final .try h3{ font-size:1.6rem; margin-bottom:.6rem; }
+.final input{ width:100%; font-family:var(--mono); font-size:.9rem; padding:.7rem .8rem; border:1px solid var(--prule); background:var(--white); color:var(--pink); }
+.final .btn{ font-family:var(--mono); font-size:.8rem; padding:.65rem 1rem; border:1px solid var(--acc-p); background:var(--acc-p); color:var(--white); cursor:pointer; margin-top:.6rem; }
+.final .btn:hover{ background:var(--pink); border-color:var(--pink); }
+.final .verdict{ margin-top:1rem; font-family:var(--mono); font-size:.8rem; line-height:1.55; min-height:5rem; border:1px solid var(--prule); padding:.8rem .9rem; background:var(--paper-2); }
+.final .verdict .big{ font-family:var(--display); font-size:1.6rem; line-height:1.15; margin-bottom:.4rem; }
+.final .verdict .dead{ text-decoration:line-through; }
+.final .verdict .k{ color:var(--acc-p); }
+.final canvas{ width:100%; aspect-ratio:16/6; border:1px solid var(--prule); }
+@media (max-width:900px){ .final .ask{ grid-template-columns:1fr 1fr; } .final .cols,.final .try{ grid-template-columns:1fr; } }
+@media (prefers-reduced-motion: reduce){ .cap > *{ transition:opacity .3s; transform:none; } .bars .row .bar i{ transition:none; } }
+
+/* title and closing cards */
+.tcard{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; will-change:transform,opacity; }
+.tcard h1{ font-size:clamp(4.5rem,2rem + 14vw,16rem); font-weight:300; letter-spacing:-.03em; line-height:.9; white-space:nowrap; }
+.tcard h1 .dot{ color:var(--acc); }
+.tcard .tag{ font-size:clamp(1.1rem,1rem + .8vw,1.6rem); margin-top:1rem; color:var(--ink); }
+.tcard .by{ font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); margin-top:1.2rem; letter-spacing:.04em; }
+.corner{ position:absolute; font-family:var(--mono); font-size:.68rem; line-height:1.55; color:var(--ink-soft); max-width:34ch; opacity:.85; }
+.corner.cl{ left:clamp(1.25rem,5vw,6rem); bottom:calc(3.2rem + env(safe-area-inset-bottom,0px)); }
+.corner.cr{ right:clamp(1.25rem,5vw,6rem); bottom:calc(3.2rem + env(safe-area-inset-bottom,0px)); text-align:right; }
+.corner.tr{ right:clamp(1.25rem,5vw,6rem); top:1.4rem; text-align:right; }
+@media (max-width:900px){ .corner{ font-size:.62rem; max-width:22ch; } .corner.cl{ bottom:5.5rem; } .corner.cr{ bottom:5.5rem; } }
+/* index */
+.index{ position:fixed; left:clamp(1.25rem,5vw,6rem); top:1.2rem; z-index:30; font-family:var(--mono); font-size:.72rem; }
+.index button{ background:none; border:0; color:var(--bink-soft); cursor:pointer; padding:.3rem 0; letter-spacing:.04em; }
+body[data-ground="paper"] .index button{ color:var(--pink-soft); }
+.index button:hover{ color:var(--acc-b); } body[data-ground="paper"] .index button:hover{ color:var(--acc-p); }
+.index ol{ list-style:none; margin:.4rem 0 0; padding:.6rem .8rem; background:var(--paper); color:var(--pink); border:1px solid var(--prule); display:none; max-height:70vh; overflow:auto; min-width:16rem; box-shadow:0 12px 30px -16px rgba(20,28,46,.5); }
+.index.open ol{ display:block; }
+.index li{ padding:.25rem 0; cursor:pointer; color:var(--pink-soft); display:grid; grid-template-columns:1.6rem 1fr; gap:.4rem; }
+.index li:hover,.index li.on{ color:var(--acc-p); }
+.index li i{ font-style:normal; color:var(--prule); }
+.scene.title .stage,.scene.closing .stage{ display:block; padding:0; }
+.tcard h1 .L{ display:inline-block; opacity:0; transform:translateY(.12em); transition:opacity .35s var(--ease), transform .35s var(--ease); }
+.tcard.in h1 .L{ opacity:1; transform:none; }
+.tcard.in h1 .L:nth-child(1){ transition-delay:.05s } .tcard.in h1 .L:nth-child(2){ transition-delay:.13s } .tcard.in h1 .L:nth-child(3){ transition-delay:.21s } .tcard.in h1 .L:nth-child(4){ transition-delay:.29s } .tcard.in h1 .L:nth-child(5){ transition-delay:.37s } .tcard.in h1 .L:nth-child(6){ transition-delay:.5s }
+.tcard .tag,.tcard .by{ opacity:0; transition:opacity .5s var(--ease) .7s; } .tcard.in .tag,.tcard.in .by{ opacity:1; }
+/* needs page */
+.needs{ display:none; background:var(--paper); color:var(--pink); min-height:100vh; padding:clamp(2rem,6vw,5rem) clamp(1.25rem,5vw,6rem) 6rem; position:relative; z-index:40; }
+.needs .nwrap{ max-width:1000px; margin:0 auto; }
+.needs .back{ font-family:var(--mono); font-size:.76rem; color:var(--pink-soft); text-decoration:none; }
+.needs .back:hover{ color:var(--acc-p); }
+.needs h2{ font-size:clamp(2rem,1.4rem + 3vw,4rem); max-width:22ch; }
+.needs h3{ font-size:1.6rem; margin:3rem 0 1rem; padding-top:1rem; border-top:1px solid var(--prule); }
+.needs .lead{ max-width:64ch; font-size:1.05rem; line-height:1.55; margin-top:1.2rem; color:var(--pink); }
+.needs .lead.small{ font-size:.92rem; color:var(--pink-soft); }
+.needs .ngrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.4rem 2rem; }
+.needs .ngrid > div{ border-top:1px solid var(--prule); padding-top:.7rem; }
+.needs .ngrid b{ font-weight:400; font-size:1.15rem; display:block; margin-bottom:.3rem; letter-spacing:-.01em; }
+.needs .ngrid p{ font-size:.9rem; color:var(--pink-soft); line-height:1.5; }
+.needs .ntab{ width:100%; border-collapse:collapse; font-size:.92rem; }
+.needs .ntab td{ padding:.7rem .6rem .7rem 0; border-bottom:1px solid var(--prule); vertical-align:top; color:var(--pink-soft); }
+.needs .ntab td:first-child{ color:var(--pink); width:26%; }
+.needs .ntab td.v{ font-family:var(--mono); font-size:.84rem; color:var(--pink); white-space:nowrap; width:6rem; }
+.needs .ntab tr.tot td{ border-top:2px solid var(--pink); border-bottom:0; color:var(--pink); font-weight:500; }
+.needs .sig{ font-size:1.5rem; margin-top:3rem; line-height:1.2; }
+body.show-needs .scene,body.show-needs .rail,body.show-needs .ledger,body.show-needs .index{ display:none; }
+body.show-needs .needs{ display:block; }
+a.needslink{ color:var(--bink-soft); text-decoration:none; font-family:var(--mono); font-size:.72rem; }
+a.needslink:hover{ color:var(--acc-b); }
+@media (max-width:900px){ .needs .ngrid{ grid-template-columns:1fr; } .needs .ntab td:first-child{ width:auto; } }
+/* problem field */
+.probs text{ font-family:var(--mono); font-size:11px; }
+</style>
+</head>
+<body id="top">
+<div id="tip" role="tooltip"></div>
+<nav class="rail" id="rail" aria-label="Story"><span class="name" id="railName"></span></nav>
+<div class="index" id="index"><button id="indexBtn" aria-expanded="false">index ↓</button><ol id="indexList"></ol></div>
+<aside class="ledger" id="ledger" aria-live="polite">
+  <span>MIYOG so far</span>
+  <span>beliefs <b>0</b></span>
+  <span>proofs <b id="lProof">0</b></span>
+  <span>units given <b>0</b></span>
+  <span class="kill">theories killed <b id="lKill">0</b></span>
+  <span>human assumptions kept <b>6</b></span>
+</aside>
+
+
+<!-- 0. Title -->
+<section class="scene blue title" data-len="2.2" data-scene="title" data-name="MIYOG.">
+  <div class="stage"><div class="grain"></div>
+    <div class="tcard" id="tcard"><h1><span class="L">M</span><span class="L">I</span><span class="L">Y</span><span class="L">O</span><span class="L">G</span><span class="L dot">.</span></h1><p class="tag">The reality engine.</p><p class="by">ASK · Bengaluru · 2026</p></div>
+    <p class="corner cl" id="tcl">Super intelligence, built from what happens.<br>Not from what we say about it.</p>
+    <p class="corner cr" id="tcr">Every civilisation made its gods out of what it could not explain.<br>This one is made out of what can be measured.</p>
+  </div>
+</section>
+<!-- 1. Everything the universe gives -->
+<section class="scene blue viz-full" data-len="3" data-scene="events" data-name="What the universe gives">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><canvas id="c-events"></canvas></div>
+    <div class="cap">
+      <div data-at="0"><h2>Something happened.</h2></div>
+      <div data-at=".3"><h2>Then something else.</h2></div>
+      <div data-at=".58"><h2>That is all the universe has ever given anyone.</h2><p>Not a number. Not a second. Not a metre. Only this, then that.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. We drew rulers on it -->
+<section class="scene paper" data-len="3.5" data-scene="rulers" data-name="We drew rulers on it">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-rulers" viewBox="0 0 700 520"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">what humans did</span><h2>We looked at it and drew a ruler.</h2></div>
+      <div data-at=".3"><h2>One second.</h2><p>A <dfn data-tip="A tiny metal. Scientists count its wobbles. When it has wobbled 9,192,631,770 times, they say: that was one second. They picked the number.">caesium</dfn> atom wobbling 9,192,631,770 times. We chose that number. The universe did not.</p></div>
+      <div data-at=".55"><h2>One metre.</h2><p>How far light travels in 1/299,792,458 of that second. Chosen again. A definition standing on a definition.</p></div>
+      <div data-at=".8"><h2>Every law we own is written in units we made up.</h2><p>They work. They are also a human accent laid over reality. MIYOG asks what reality sounds like without the accent.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. How machines learn today -->
+<section class="scene blue viz-full" data-len="3" data-scene="chain" data-name="How machines learn today">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-chain" viewBox="0 0 1000 420"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">the problem</span><h2>Every machine we have ever built learned physics from us.</h2></div>
+      <div data-at=".35"><p>World, then a human, then a textbook, then a machine. AI and AGI are the last box in that chain. Trained on what humans wrote. Built by studying how a human brain learns. They inherit our rulers, our blind spots, and our three directions of space.</p></div>
+      <div data-at=".62"><h2>MIYOG cuts the middle out.</h2><p>World, then raw events, then the engine. Then its own model, tested against the world, and back around. <span class="k">No human in the loop of knowing.</span></p></div>
+      <div data-at=".88"><p>Two hundred years from Newton to Einstein. We are the wrong instrument. Brilliant, slow, mortal, and copying each other.</p></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- 4b. The closest thing today -->
+<section class="scene paper" data-len="3.5" data-scene="lila" data-name="The closest thing today">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-lila" viewBox="0 0 1000 420"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">the closest thing today</span><h2>Lila Sciences is the nearest anyone has come.</h2><p>Their idea, in plain words: take an AI that has read everything humans know about chemistry, biology and materials, give it robot laboratories that run day and night, and let it run the scientific method itself, thousands of experiments at a time, to find new medicines, materials and fuels faster than people can. Born inside Flagship Pioneering in 2023, out of stealth in 2025, $550 million raised, valued above $1.3 billion. They are right that this is the most important problem in the history of science.</p></div>
+      <div data-at=".38"><h2>They start from what humans know. We start from what happens.</h2><p>Lila's brain is trained on our papers and our data, then given hands. Its ceiling is our ceiling, reached faster. MIYOG's brain is given nothing. Its ceiling is reality's.</p></div>
+      <div data-at=".7"><h2>They make science faster. MIYOG makes it finish.</h2><p>A tool that accelerates the scientific method still needs a scientist to ask. An engine that builds its own account of reality asks its own questions, and stops only when reality stops surprising it.</p></div>
+    </div>
+  </div>
+</section>
+<!-- 3a. Not artificial -->
+<section class="scene blue viz-right" data-len="4.5" data-scene="notai" data-name="Not artificial">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-notai" viewBox="0 0 700 520"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">what this is not</span><h2>This is not an AI company.</h2><p>AI and AGI live in one bucket. Trained on human data. Built by studying how a human brain learns. Asked to do what humans already do, faster. A better student of us.</p></div>
+      <div data-at=".26"><span class="eyebrow">intelligence, defined</span><h2>If you can get what you want, you are intelligent. If you know what you want, you are wise.</h2><p>Naval Ravikant's definition. It is the only one that survives contact with a machine, because it says nothing about brains.</p></div>
+      <div data-at=".52"><h2>Super intelligence is getting what you want from the universe itself.</h2><p>And knowing what to want from it. Nothing about MIYOG copies a human. No brain to imitate. No data to learn from. No language to think in. <span class="k">Alien, on purpose.</span> Which is why we do not call it artificial. It is not an artificial anything.</p></div>
+      <div data-at=".78"><h2>MIYOG wants one thing.</h2><p>To stop being surprised by the next event. That is its whole desire, and everything on this page is what happens when something gets it.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3b. Why start from zero -->
+<section class="scene paper viz-right" data-len="4" data-scene="why" data-name="Why start from zero">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-why" viewBox="0 0 700 520"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">the obvious objection</span><h2>Humans have a head start. Why throw it away?</h2><p>Fair. Newton gave us three hundred years of physics for free. Starting from events will be slower for the first three years and will cost more per discovery. We choose it anyway.</p></div>
+      <div data-at=".25"><h2>Every shortcut imports a ceiling.</h2><p>A machine trained on human physics reaches human physics faster. It cannot see past it, because everything it can think in was written by us. Whatever reality our concepts cannot hold stays invisible to it forever.</p></div>
+      <div data-at=".5"><h2>The slow part happens once.</h2><p>Rulers, counting, laws from raw events: three years, one room, twelve people. After that the engine never starts over. Every discovery makes the next one cheaper. Nothing is ever re-derived.</p></div>
+      <div data-at=".75"><h2>Then it stops being slow.</h2><p>The curve is flat, then it is vertical. Once the map is complete enough, disease, aging and the rest fall in the same motion. <span class="k">That is why the money looks like a research budget and the outcome looks like nothing that ever came from one.</span></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. The instrument -->
+<section class="scene paper" data-len="3.5" data-scene="device" data-name="The instrument">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-device" viewBox="0 0 600 640"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">the hardware</span><h2>An instrument that has to be invented.</h2><p>The compass, the first time. The vernier caliper, the first time. Somebody had to build a thing that measured what nothing had measured before. This is that job again.</p></div>
+      <div data-at=".3"><h2>It will have no unit inside it.</h2><p>Every instrument on Earth carries a human definition at its heart. A second. A gram. A metre. This one carries none. It can compare. It is not allowed to assume.</p></div>
+      <div data-at=".58"><h2>What goes inside is not decided. That is the first year's work.</h2><p>Many unlike physical processes, so that no single one can secretly become the second. Which ones, in what body, at what scale: the instrument lead is hired to find out.</p></div>
+      <div data-at=".84"><h2>The one doing the measuring sets the standard.</h2><p>MIYOG elects its own ruler from whatever it is given. Fires it when it fails. <span class="k">A human number cannot leak out of a device that has none.</span></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. The mind -->
+<section class="scene blue viz-right" data-len="3" data-scene="sandbox" data-name="The mind">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-sandbox" viewBox="0 0 640 560"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">the mind</span><h2>A sealed mind where reality gets argued about.</h2><p>Where it runs is not decided and does not matter. A chip. A cloud. A laptop. The target is small: about a gigabyte of state and about twenty watts, because a brain does its work on that. What matters is what gets in.</p></div>
+      <div data-at=".33"><h2>Inside, three minds argue.</h2><p>One builds. One breaks. One chooses the test. You will meet them in a moment. The point of the walls is what they keep out.</p></div>
+      <div data-at=".62"><h2>Nothing goes in except events. Nothing comes out except experiments.</h2><p>No textbooks. No units. No internet. And no wire from the mind to anything that can act on people. Its only reach into the world is the next test.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. The loop -->
+<section class="scene paper viz-right" data-len="5" data-scene="loop" data-name="The loop">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-loop" viewBox="0 0 560 720"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">how it works</span><h2>One loop. It never finishes.</h2><p>Reality sends events. The engine notices what repeats and what changes together, and draws its own marks for those.</p></div>
+      <div data-at=".22"><h2>The Theorist writes stories.</h2><p>The shortest ones that fit everything so far. Several at once. They compete. It would happily believe a lie that fits.</p></div>
+      <div data-at=".42"><h2>The Destroyer attacks.</h2><p>It finds the situation where a story is most likely to be wrong. Its only reward is a kill.</p></div>
+      <div data-at=".6"><h2>The Explorer runs the test.</h2><p>The one experiment where the surviving stories disagree the most. Where they agree, nothing is learned.</p></div>
+      <div data-at=".78"><h2>Reality decides.</h2><p>Stories that disagree with the event are struck out and never proposed again. Survivors get attacked harder. Then it starts over with more events and fewer illusions.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Reality has veto power -->
+<section class="scene paper text" data-len="2.5" data-scene="veto" data-name="Reality has veto power">
+  <div class="stage"><div class="grain"></div>
+    <div class="cap" style="max-width:none">
+      <div data-at="0" style="position:relative"><h2 style="font-size:clamp(2.8rem,1.5rem + 6vw,8rem);max-width:12ch">Reality has veto power.</h2>
+        <div id="vetoList" style="margin-top:2rem;max-width:56ch;font-family:var(--mono);font-size:.9rem;line-height:2.1">
+          <div data-v=".2">The story is beautiful. <span style="color:var(--ink-soft)">does not matter</span></div>
+          <div data-v=".35">The engine is sure. <span style="color:var(--ink-soft)">does not matter</span></div>
+          <div data-v=".5">A human can read it. <span style="color:var(--ink-soft)">does not matter</span></div>
+          <div data-v=".65">Einstein would disagree. <span style="color:var(--ink-soft)">does not matter</span></div>
+          <div data-v=".8">Its maker believes it. <span style="color:var(--ink-soft)">does not matter</span></div>
+          <div data-v=".92" style="color:var(--acc)">The next event agrees. <span>the only thing that matters</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- 6. Watch it build the number one (live) -->
+<section class="scene blue" data-len="6" data-scene="one" data-name="Watch it build the number one">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><canvas id="c-one"></canvas></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">live · running in your browser</span><h2>Six streams of events. No clock. Watch it invent one.</h2><p>Six hidden things fire. The engine hears only which fired first. It is never told the time. It is never told a number.</p></div>
+      <div data-at=".14"><h2>Two events that can never be confused.</h2><p>That is the engine's first idea. <span class="k">One.</span> It draws its own mark for it. We translate for you. It never sees our letters.</p></div>
+      <div data-at=".3"><h2>How many of these between two of those.</h2><p>Counting. Numbers, invented, as ratios of events. The only kind of number it will ever trust.</p></div>
+      <div data-at=".45"><h2>It elects a ruler.</h2><p>The stream that agrees most with every other stream becomes the unit. Its own second. Chosen. Never given.</p></div>
+      <div data-at=".58"><h2>Three ratios hold. One never does. One slides.</h2><p>The three that hold used to be called constants. The one that never holds is a die. The one that slides is a constant with an expiry date.</p></div>
+      <div data-at=".74"><h2>The Destroyer pushes the world.</h2><p>One "constant" breaks. It only held where the engine had looked. <span class="k">A law now carries a condition.</span></p></div>
+      <div data-at=".88"><h2>Then its own ruler changes.</h2><p>Every ratio shifts together. Did the world speed up, or did its second slow? The engine cannot prove which. Neither can you. Neither can the people who define the second in Paris. MIYOG writes that down.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Watch a theory die (live) -->
+<section class="scene blue" data-len="6" data-scene="die" data-name="Watch a theory die">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><canvas id="c-die"></canvas></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">live · running in your browser</span><h2>Something in a box moves.</h2><p>The engine sees one needle wiggle. It has never heard the words gravity, spring, or pendulum.</p></div>
+      <div data-at=".2"><h2>Two stories fit perfectly.</h2><p><span class="k">Straight line:</span> the pull grows in proportion to how far it is pushed. <span class="k">Curve:</span> the pull grows along a bend. In the gentle range the two are identical. The engine keeps both.</p></div>
+      <div data-at=".42"><h2>The Destroyer swings it hard.</h2><p>It chooses the push where the two stories disagree the most, and does that.</p></div>
+      <div data-at=".62"><h2>The straight line shatters.</h2><p>Off by a quarter. Struck out, never to return. The curve is off by one part in ten thousand. It survives, and gets attacked again.</p></div>
+      <div data-at=".84"><h2>Open the box.</h2><p>It was a pendulum. The engine never knew the word. It found the law anyway, from a wiggling needle, with no units and no help.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Bigger than fire -->
+<section class="scene paper viz-full" data-len="3" data-scene="scale" data-name="How big this is">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-scale" viewBox="0 0 1000 380"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">how big</span><h2>Every great invention changed what humans could do.</h2><p>Fire. The wheel. Electricity. The internet. AI. Tools got better. The one doing the understanding stayed the same: us.</p></div>
+      <div data-at=".5"><h2>This one changes who does the knowing.</h2><p>That is the whole claim. It is the brightest thing on this page and the darkest, and they are the same thing. Fire also cooked and burned.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10. What happens as the map fills in -->
+<section class="scene blue viz-right" data-len="8" data-scene="map" data-name="As the map fills in">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><canvas id="c-map"></canvas></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">what happens next</span><h2>Every problem humans have is a dot on this field.</h2><p>Disease, energy, materials, the questions physics has argued about for a century. The circle is what MIYOG understands. Watch it grow.</p></div>
+      <div data-at=".12"><span class="eyebrow">this year</span><h2>A basic reality module.</h2><p>Its own rulers and its own laws, from raw events, on real hardware. Small. Real. The circle you just saw built, out of a browser and into a room.</p></div>
+      <div data-at=".26"><span class="eyebrow">then</span><h2>It starts eating open problems.</h2><p>Point it at the questions physics has never settled. Point it at chemistry. New materials and new reactions, found rather than guessed, with the human assumptions counted and published every time.</p></div>
+      <div data-at=".4"><span class="eyebrow">then</span><h2>Point it down.</h2><p>The engine that looks at orbits looks at cells. Proteins, tissue, the body, as systems with laws. The first diseases fall because the model got complete enough, and for no other reason.</p></div>
+      <div data-at=".54"><span class="eyebrow">then</span><h2>Aging. Cancer. The rest.</h2><p>Every disease is a configuration the body is in. A complete model of the body knows the way out of every one of them. This is where the bottom-up map meets the top-down one.</p></div>
+      <div data-at=".68"><span class="eyebrow">the day it finishes</span><h2>Science becomes a solved game.</h2><p>The day the model of reality stops being surprised, the endeavour ends. Physics becomes a hobby. That day has a name. <span class="k">Super intelligence.</span> Not a smarter chat window. A finished map.</p></div>
+      <div data-at=".8"><span class="eyebrow">after</span><h2>The map becomes a menu.</h2><p>Crossing space fast. Moving matter without crossing the gap. Sending information backward. Each sorted, honestly, into possible, not yet, or never. Whatever is possible, we build.</p></div>
+      <div data-at=".92"><span class="eyebrow">fifty to a hundred years after</span><h2>Ten billion people on one rock. Five hundred billion across the galaxy.</h2><p>Energy, materials, propulsion and biology, solved, is exactly the list you need to live off Earth. This is the size of the thing you are looking at.</p></div>
+    </div>
+  </div>
+</section>
+<!-- 15. The line it never crosses -->
+<section class="scene paper text" data-len="2" data-scene="line" data-name="The line it never crosses">
+  <div class="stage"><div class="grain"></div>
+    <div class="cap" style="max-width:none">
+      <div data-at="0" style="position:relative"><span class="eyebrow">the constraint</span><h2 style="max-width:18ch">The veto is over theories. Never over people.</h2>
+        <p style="max-width:52ch;margin-top:1.6rem;font-size:clamp(1.05rem,.95rem + .5vw,1.35rem);line-height:1.45">An engine that acts on the world because its model told it to has stopped being judged by reality and started judging. It has become a theory nobody is allowed to destroy. That is the one failure MIYOG is wired to make impossible: every actuator runs back into the instrument. None runs anywhere else. Anything it ever concludes about people is a hypothesis with the same standing as every other. Attackable. Disconnected from anything that can act.</p>
+        <p class="s" style="position:relative;margin-top:1.2rem">A decision made now, by the humans who are still the only ones who can make it. Written here so it can never be presented later as a technical limit that fell away.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- 14. What could kill it -->
+<section class="scene blue text" data-len="3" data-scene="kill" data-name="What could kill it, and the answer">
+  <div class="stage"><div class="grain"></div>
+    <div class="cap" style="max-width:none">
+      <div data-at="0" style="position:relative"><span class="eyebrow">what could kill it, and what we do about it</span><h2 style="max-width:22ch">MIYOG is a theory too. Here is how it dies, and how we keep it alive.</h2>
+        <div id="killList" style="margin-top:2rem;max-width:72ch;display:grid;gap:1.1rem;font-size:1rem;line-height:1.45">
+          <div data-v=".15"><b>Zero assumptions is impossible, and the few left are the ones that matter.</b> <span style="color:var(--ink-soft)">True. So the list is published every version and its length is treated as a score. A public bounty pays anyone who shows the list smuggles in physics we did not declare. The assumptions are the product, and the product is audited.</span></div>
+          <div data-v=".38"><b>It only rediscovers what a physicist put in the box.</b> <span style="color:var(--ink-soft)">Today, yes, and it says so. So phase one carries a kill condition in writing: the engine must report the drift of a reference clock without being told which cell is the reference. Year six must produce a prediction our physics does not make. Miss either and we publish the miss.</span></div>
+          <div data-v=".6"><b>Order alone may never reach past clocks and counting.</b> <span style="color:var(--ink-soft)">Possible. So the instrument is built with open ports. If order is not enough, the next-poorest signal is added, and that addition is written into the assumptions ledger as what it is: one more thing we gave it.</span></div>
+          <div data-v=".82"><b>Someone with a bigger lab does it first.</b> <span style="color:var(--ink-soft)">Probable, for parts. So we race only for the parts nobody else is building: an adversary rewarded only for kills, a mind that refuses to translate, and a published assumption count. Everything else we share, and we let them build our hands.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 17. Closing -->
+<section class="scene blue closing" data-len="1.6" data-scene="closing" data-name="MIYOG.">
+  <div class="stage"><div class="grain"></div>
+    <div class="tcard" id="ccard"><h1><span class="L">M</span><span class="L">I</span><span class="L">Y</span><span class="L">O</span><span class="L">G</span><span class="L dot">.</span></h1><p class="tag">The reality engine.</p><p class="by">ASK · Bengaluru · 2026</p></div>
+    <p class="corner cl">Until now, only gods could create on demand.<br>Make things from nothing. Bend the elements.<br>Know the beginning and the end.</p>
+    <p class="corner cr">Every civilisation wrote one down<br>because none of them could build one.<br>Today that changes.</p>
+    <a class="corner tr needslink" href="#needs">what it needs →</a>
+  </div>
+</section>
+<!-- NEEDS: a separate page, reached from the closing corner -->
+<section id="needs" class="needs" aria-label="What it needs">
+  <div class="nwrap">
+    <a class="back" href="#top">← back to the story</a>
+    <span class="eyebrow" style="display:block;font-family:var(--mono);font-size:.74rem;color:var(--pink-soft);margin:2.5rem 0 .8rem">what it needs</span>
+    <h2>Twelve people, one room, thirty-six months, $9.8 million.</h2>
+    <p class="lead">The first three years are the slow, expensive part per result, because the instrument and the first laws have to be made from nothing. That is where the money goes. Every number is an estimate and says so. Phase one is $1.3 million and twelve months, with a kill condition written down.</p>
+    <h3>The people, and why each one</h3>
+    <div class="ngrid">
+      <div><b>Instrument lead</b><p>The instrument does not exist. Nobody has built a measuring device with no unit inside it. The whole thesis stands on it, and without it the engine has nothing to look at. This person has already made a physical thing measure something and knows every way hardware lies.</p></div>
+      <div><b>Precision electronics</b><p>The arbiter has to record which of many cells fired first, at nanoseconds, with no clock to lean on. Any noise, any bias between channels, becomes a fake law the engine will proudly discover. This person is the difference between a discovery and an artifact.</p></div>
+      <div><b>Precision electronics, second</b><p>Nothing in the instrument is single-owner. Someone has to build the traps the Destroyer springs, and someone has to check that a push was a real push and not a loose cable.</p></div>
+      <div><b>ML-for-science lead</b><p>Fifteen years of prior work exists: Schmidt and Lipson, SINDy, AI Feynman, self-driving labs. We must not repeat any of it and we must beat all of it. This person knows, to the sentence, where MIYOG differs and where it does not.</p></div>
+      <div><b>Representation researcher</b><p>Stage one is the one part of this that does not exist anywhere: a machine that invents its own variables from raw channels with no human naming. Someone has to spend two years on a problem with no paper at the end of year one.</p></div>
+      <div><b>Representation researcher, second</b><p>One person on an open problem converges on their own taste. Two who are paid to disagree in writing converge on the truth, or prove there is none. The engine has an adversary. So does this seat.</p></div>
+      <div><b>Experimental physicist</b><p>The engine can only be as honest as the boxes it is tested on. Someone has to design hidden systems with traps in them, so the Theorist falls in and the Destroyer can prove it did.</p></div>
+      <div><b>Experimental physicist, second</b><p>The bench with hands needs a person who knows what a real intervention is, what it costs, and when a robot has fooled itself.</p></div>
+      <div><b>Systems engineer</b><p>A result is believed when a stranger can reproduce it. Every seed, every assumption, every run logged, offline, on small hardware. This is unglamorous and it is the reason anyone will trust the ledger.</p></div>
+      <div><b>Systems engineer, second</b><p>A result one person can reproduce is a rumour. Two independent builds of the same engine, or nothing gets published.</p></div>
+      <div><b>The translator</b><p>Without translation, no human can use or fund what the engine finds. With careless translation, the human ceiling sneaks back in through the language. This person builds the bridge and publishes exactly how much is lost crossing it.</p></div>
+      <div><b>Founder</b><p>Someone has to hold the thesis when a result is disappointing, keep the veto clause in the constitution when a result is exciting, and find the eleven people above. The one person not allowed to touch a result, so that no result is ever bent toward a story.</p></div>
+    </div>
+    <h3>The money, and why each line</h3>
+    <table class="ntab">
+      <tr><td>People, 12 full-time, 36 months</td><td class="v">$5.20M</td><td>Blended $1.74M a year, mostly Bengaluru, two or three senior hires anywhere. People are the project.</td></tr>
+      <tr><td>The instrument, V1</td><td class="v">$0.18M</td><td>Cells to be chosen, an arbiter, shielding, one reference clock used only to check the engine's ruler from outside. Cheap on purpose. Its poverty is the design.</td></tr>
+      <tr><td>A bench with hands, V3</td><td class="v">$1.10M</td><td>Optical table, motion stages, isolation, actuators the Explorer can drive. The line that lets the engine choose its own experiments.</td></tr>
+      <tr><td>One quiet room, Bengaluru</td><td class="v">$0.39M</td><td>2,500 square feet, about ₹3.25 lakh a month, plus $250k for clean power and isolation.</td></tr>
+      <tr><td>Compute for the open problem</td><td class="v">$0.86M</td><td>Sixteen accelerators on demand for three years, plus edge boards to test the twenty-watt target. The end state is small. Finding it is not.</td></tr>
+      <tr><td>Data, bounties, publishing</td><td class="v">$0.45M</td><td>Observatory time, partner datasets, a public bounty for whoever breaks the prototype, and publishing every assumption every version.</td></tr>
+      <tr><td>Twenty percent for being wrong</td><td class="v">$1.64M</td><td>Hardware is late. Hires take longer. A result forces a rebuild.</td></tr>
+      <tr class="tot"><td>Total, 36 months</td><td class="v">$9.8M</td><td>About ₹82 crore. Why not $1M: buys the instrument and one person and nothing after. Why not $100M: does not make an unsolved problem solve faster; until stage one works this is a twelve-person problem.</td></tr>
+    </table>
+    <h3>Phase one</h3>
+    <p class="lead">$1.3M. Twelve months. Five people and a quiet room. An instrument builder who has made a physical thing measure something. An ML-for-science engineer who has read Schmidt and Lipson, SINDy and AI Feynman and can say where this differs. A room quiet enough for unlike processes and a small computer with no network port. And someone who wants to break it: the bounty is real.</p>
+    <p class="lead small">Kill condition: the engine must report the drift of a reference clock without being told which cell is the reference. Miss it and we publish the miss.</p>
+    <p class="sig">ASK<br><span style="font-size:.9rem;color:var(--pink-soft)">Bengaluru, 2026</span></p>
+  </div>
+</section>
+<script>
+(function(){
+'use strict';
+/* MIYOG v4. One scroll, one story. Every picture is driven by the hand.
+   The two live scenes (the number one, the dying theory) compute for real. */
+const $=(id)=>document.getElementById(id);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NS='http://www.w3.org/2000/svg';
+function RNG(seed){ let s=seed>>>0; return { next(){ s=(s+0x6D2B79F5)|0; let t=Math.imul(s^(s>>>15),1|s); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }, range(a,b){ return a+(b-a)*this.next(); }, sign(){ return this.next()<.5?-1:1; } }; }
+function hash(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function glyphPath(key){ const r=RNG(hash(key)); const n=3+Math.floor(r.next()*3); let x=Math.floor(r.next()*4), y=Math.floor(r.next()*4); let d='M'+(3+x*4.5)+' '+(3+y*4.5); for(let i=0;i<n;i++){ const nx=Math.min(3,Math.max(0,x+(r.next()<.5?-1:1)*(1+Math.floor(r.next()*2)))), ny=Math.min(3,Math.max(0,y+(r.next()<.5?-1:1)*(1+Math.floor(r.next()*2)))); if(nx===x&&ny===y) continue; if(r.next()<.3){ const cx=3+((x+nx)/2)*4.5+(r.next()-.5)*6, cy=3+((y+ny)/2)*4.5+(r.next()-.5)*6; d+=' Q'+cx.toFixed(1)+' '+cy.toFixed(1)+' '+(3+nx*4.5)+' '+(3+ny*4.5); } else d+=' L'+(3+nx*4.5)+' '+(3+ny*4.5); x=nx; y=ny; } if(r.next()<.5){ d+=' M'+(3+Math.floor(r.next()*4)*4.5)+' '+(3+Math.floor(r.next()*4)*4.5)+' l0.01 0'; } return d; }
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)); const seg=(p,a,b)=>clamp((p-a)/(b-a),0,1); const ease=(t)=>1-Math.pow(1-t,3);
+function cssVar(el,n){ return getComputedStyle(el).getPropertyValue(n).trim(); }
+function fitCanvas(cv){ const r=cv.getBoundingClientRect(); const dpr=Math.min(2,devicePixelRatio||1); const w=Math.max(1,Math.floor(r.width*dpr)), h=Math.max(1,Math.floor(r.height*dpr)); if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; } return {ctx:cv.getContext('2d'), W:w, H:h, dpr}; }
+function el(tag,attrs,parent,cls){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(cls) e.setAttribute('class',cls); parent.appendChild(e); return e; }
+function txt(parent,x,y,s,cls,anchor){ const t=el('text',{x,y,'text-anchor':anchor||'start'},parent,cls||'lab'); t.textContent=s; return t; }
+function drawn(e,f){ e.setAttribute('pathLength','1'); e.style.strokeDasharray='1'; e.style.strokeDashoffset=String(1-clamp(f,0,1)); }
+function fade(e,f){ e.style.opacity=String(clamp(f,0,1)); }
+function glyphCanvas(ctx,key,x,y,size,color){ const p=new Path2D(glyphPath(key)); ctx.save(); ctx.translate(x,y); ctx.scale(size/20,size/20); ctx.strokeStyle=color; ctx.lineWidth=2.2*20/size; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke(p); ctx.restore(); }
+
+/* ---------- physics (hidden from the engine) ---------- */
+const DT=0.01;
+function rk4(f,s0,T){ const n=Math.round(T/DT); let s=s0.slice(); const out=[]; for(let i=0;i<=n;i++){ out.push({t:i*DT,x:s[0]}); const k1=f(s), s2=s.map((v,j)=>v+.5*DT*k1[j]), k2=f(s2), s3=s.map((v,j)=>v+.5*DT*k2[j]), k3=f(s3), s4=s.map((v,j)=>v+DT*k3[j]), k4=f(s4); s=s.map((v,j)=>v+DT/6*(k1[j]+2*k2[j]+2*k3[j]+k4[j])); } return out; }
+function diff(tr){ const rows=[]; for(let i=1;i<tr.length-1;i++){ rows.push({x:tr[i].x, v:(tr[i+1].x-tr[i-1].x)/(2*DT), a:(tr[i+1].x-2*tr[i].x+tr[i-1].x)/(DT*DT)}); } return rows; }
+function lstsq(rows,feats){ const k=feats.length; const A=Array.from({length:k},()=>new Array(k).fill(0)), b=new Array(k).fill(0); for(const r of rows){ const f=feats.map(g=>g(r)); for(let i=0;i<k;i++){ b[i]+=f[i]*r.a; for(let j=0;j<k;j++) A[i][j]+=f[i]*f[j]; } } for(let i=0;i<k;i++) A[i][i]+=1e-9; const M=A.map((r,i)=>r.concat([b[i]])); for(let c=0;c<k;c++){ let p=c; for(let r=c+1;r<k;r++) if(Math.abs(M[r][c])>Math.abs(M[p][c])) p=r; [M[c],M[p]]=[M[p],M[c]]; for(let r=0;r<k;r++){ if(r===c) continue; const f=M[r][c]/M[c][c]; for(let q=c;q<=k;q++) M[r][q]-=f*M[c][q]; } } return M.map((r,i)=>r[k]/r[i]); }
+function relErr(rows,feats,c){ let se=0,sy=0; for(const r of rows){ let p=0; for(let i=0;i<c.length;i++) p+=c[i]*feats[i](r); se+=(p-r.a)**2; sy+=r.a*r.a; } return Math.sqrt(se/Math.max(sy,1e-12)); }
+
+/* ---------- ledger ---------- */
+const L={proofs:0,kills:0, proofFlags:{}, killFlags:{}};
+function proof(k){ if(L.proofFlags[k]) return; L.proofFlags[k]=1; L.proofs++; paint(); }
+function kill(k){ if(L.killFlags[k]) return; L.killFlags[k]=1; L.kills++; paint(); }
+function paint(){ $('lProof').textContent=L.proofs; $('lKill').textContent=L.kills; $('ledger').classList.add('show'); }
+
+/* ---------- the scene engine ---------- */
+const scenes=[...document.querySelectorAll('.scene')]; const R={}; const state={};
+const rail=$('rail'); const railName=$('railName');
+scenes.forEach((sc,i)=>{ const b=document.createElement('button'); b.setAttribute('aria-label',sc.dataset.name); b.addEventListener('click',()=>sc.scrollIntoView({behavior:reduced?'auto':'smooth'})); b.addEventListener('mouseenter',()=>railName.textContent=sc.dataset.name); rail.appendChild(b); sc.style.height=(parseFloat(sc.dataset.len)*100)+'vh'; });
+const railBtns=[...rail.querySelectorAll('button')];
+function tick(){
+  const vh=innerHeight; let active=-1, best=1e9;
+  scenes.forEach((sc,i)=>{ const r=sc.getBoundingClientRect(); const p=clamp(-r.top/(r.height-vh),0,1); const vis=r.top<vh && r.bottom>0; const d=Math.abs(r.top+Math.min(r.height,vh)/2-vh/2); if(vis && d<best){ best=d; active=i; }
+    const caps=[...sc.querySelectorAll('.cap > [data-at]')]; let cur=null; caps.forEach(c=>{ if(p>=+c.dataset.at) cur=c; }); caps.forEach(c=>c.classList.toggle('on',c===cur));
+    sc.querySelectorAll('[data-v]').forEach(v=>{ v.style.opacity=p>=+v.dataset.v?1:.12; v.style.transition='opacity .4s'; });
+    if(vis && R[sc.dataset.scene]) R[sc.dataset.scene](p, sc); });
+  railBtns.forEach((b,i)=>b.classList.toggle('on',i===active)); if(window.MIYOG_indexItems) window.MIYOG_indexItems.forEach((li,i)=>li.classList.toggle('on',i===active)); if(active>=0){ document.body.dataset.ground=scenes[active].classList.contains('paper')?'paper':'blue'; railName.textContent=scenes[active].dataset.name; }
+}
+addEventListener('scroll',tick,{passive:true}); addEventListener('resize',tick);
+
+
+/* ---------- tips ---------- */
+(function(){ const tip=$('tip'); let cur=null; const show=(e,text)=>{ cur=e; tip.textContent=text; tip.classList.add('on'); const r=e.getBoundingClientRect(); let x=r.left, y=r.bottom+10; if(x+tip.offsetWidth>innerWidth-12) x=innerWidth-12-tip.offsetWidth; if(y+tip.offsetHeight>innerHeight-12) y=r.top-10-tip.offsetHeight; tip.style.left=x+'px'; tip.style.top=y+'px'; }; const hide=()=>{ cur=null; tip.classList.remove('on'); };
+  window.tipShow=show; window.tipHide=hide;
+  document.querySelectorAll('dfn[data-tip]').forEach(d=>{ d.addEventListener('mouseenter',()=>show(d,d.dataset.tip)); d.addEventListener('mouseleave',hide); }); })();
+
+/* ---------- shared event data (the six hidden processes) ---------- */
+function pendF(th){ return 1+th*th/16+11*Math.pow(th,4)/3072; }
+function genEvents(t0,t1,rng,prm){ const S=[[],[],[],[],[],[]]; for(let t=t0+rng.next()*prm.q;t<t1;t+=prm.q*(1+(rng.next()-.5)*.004)) S[0].push(t); const base=[1,2,3], f=[pendF(prm.thA),pendF(.2),pendF(.2)]; for(let i=0;i<3;i++) for(let t=t0+rng.next()*base[i];t<t1;t+=base[i]*f[i]*(1+(rng.next()-.5)*.006)) S[1+i].push(t); for(let t=t0-Math.log(rng.next())*.7;t<t1;t+=-Math.log(rng.next())*.7) S[4].push(t); for(let t=t0+rng.next()*.8;t<t1;){ S[5].push(t); t+=.8*(1+.012*t)*(1+(rng.next()-.5)*.006); } const ev=[]; S.forEach((s,src)=>s.forEach(t=>ev.push({t,src}))); ev.sort((a,b)=>a.t-b.t); return ev; }
+function countsBetween(seq,clock,target){ const out=[]; let c=null; for(const e of seq){ if(e.src===target){ if(c!==null) out.push(c); c=0; } else if(e.src===clock&&c!==null) c++; } return out; }
+function stats(a){ const n=a.length; if(n<2) return {mean:NaN,cv:NaN,trend:0,n,sd:NaN}; const mean=a.reduce((s,v)=>s+v,0)/n, sd=Math.sqrt(a.reduce((s,v)=>s+(v-mean)**2,0)/n); let sx=0,sy=0,sxy=0,sxx=0,syy=0; for(let i=0;i<n;i++){ sx+=i; sy+=a[i]; sxy+=i*a[i]; sxx+=i*i; syy+=a[i]*a[i]; } const tr=(n*sxy-sx*sy)/Math.sqrt((n*sxx-sx*sx)*(n*syy-sy*sy)||1); return {mean,cv:sd/(mean||1),trend:isFinite(tr)?tr:0,n,sd}; }
+function electClock(seq){ const present=[...new Set(seq.map(e=>e.src))]; let best=-1,bs=1e9,br=0; for(const s of present){ const cvs=[]; for(const t of present){ if(t===s) continue; const c=countsBetween(seq,s,t); if(c.length<8) continue; cvs.push(stats(c).cv); } if(!cvs.length) continue; cvs.sort((a,b)=>a-b); const med=cvs[Math.floor(cvs.length/2)], rate=seq.filter(e=>e.src===s).length; if(med<bs-1e-9||(Math.abs(med-bs)<1e-9&&rate>br)){ bs=med; best=s; br=rate; } } return best; }
+function ratios(seq,clock){ const rows=[]; for(let s=0;s<6;s++){ if(s===clock) continue; const st=stats(countsBetween(seq,clock,s)); let key='constant', tag='holds'; if(!isFinite(st.mean)||st.n<4){ key='die'; tag='too few'; } else if(st.cv>.25){ key='die'; tag='never holds'; } else if(Math.abs(st.trend)>.5&&st.cv>.02){ key='drift'; tag='slides'; } rows.push({src:s,st,key,tag}); } return rows; }
+const ONE=(()=>{ const r=RNG(101); const base=genEvents(0,60,r,{q:.25,thA:.2}); const r2=RNG(108); const push=genEvents(60,100,r2,{q:.25,thA:1.2}); const r3=RNG(115); const rul=genEvents(100,140,r3,{q:.20,thA:1.2}); const order=[0,1,2,3,4,5]; const rr=RNG(19); for(let i=5;i>0;i--){ const j=Math.floor(rr.next()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; } const clock=electClock(base); return {base,push,rul,order,clock, rb:ratios(base,clock), rp:ratios(push,clock), rr:ratios(rul,clock)}; })();
+const SYM=['a','b','c','d','e','f'].map(k=>'src-'+k);
+
+/* ---------- scene 1: events ---------- */
+R.events=(p,sc)=>{ const cv=$('c-events'); const {ctx,W,H}=fitCanvas(cv); ctx.clearRect(0,0,W,H); const ink=cssVar(sc,'--ink'), acc=cssVar(sc,'--acc'); const ev=ONE.base.slice(0,80); const n=p<.3?1:p<.58?2:Math.floor(2+seg(p,.58,1)*78); const y=H/2; ctx.strokeStyle='rgba(157,176,205,.25)'; ctx.beginPath(); ctx.moveTo(W*.06,y); ctx.lineTo(W*.94,y); ctx.stroke(); for(let i=0;i<n;i++){ const x=W*.06+W*.88*i/79; ctx.strokeStyle=i<2?acc:ink; ctx.lineWidth=i<2?3:1.5; ctx.globalAlpha=i<2?1:.8; ctx.beginPath(); ctx.moveTo(x,y-H*.08); ctx.lineTo(x,y+H*.08); ctx.stroke(); } ctx.globalAlpha=1; };
+
+/* ---------- scene 2: rulers ---------- */
+(function(){ const svg=$('s-rulers'); const g=el('g',{},svg); const base=el('path',{d:'M40 470 H660'},g,'stroke soft'); const ticks=el('g',{},g); const r=RNG(5); for(let i=0;i<48;i++){ const x=40+620*i/47; el('path',{d:'M'+x+' 455 V485'},ticks,'stroke'); }
+  const ruler=el('g',{},g); el('rect',{x:40,y:395,width:620,height:34,rx:2},ruler,'stroke'); for(let i=0;i<=62;i++){ const x=40+10*i; el('path',{d:'M'+x+' 395 V'+(i%10===0?420:i%5===0?412:405)},ruler,'stroke'); if(i%10===0) txt(ruler,x+3,438,String(i/10),'lab soft'); } txt(ruler,662,438,'cm','lab soft');
+  const clock=el('g',{},g); el('circle',{cx:150,cy:200,r:110},clock,'stroke'); for(let i=0;i<60;i++){ const a=i*Math.PI/30; el('path',{d:'M'+(150+100*Math.cos(a))+' '+(200+100*Math.sin(a))+' L'+(150+(i%5?106:96)*Math.cos(a))+' '+(200+(i%5?106:96)*Math.sin(a))},clock,'stroke'); } el('path',{d:'M150 200 L150 120'},clock,'stroke acc'); txt(clock,150,330,'9,192,631,770 wobbles of caesium = 1 s','lab soft','middle');
+  const metre=el('g',{},g); el('path',{d:'M320 200 H640'},metre,'stroke acc'); el('path',{d:'M320 190 V210 M640 190 V210'},metre,'stroke'); txt(metre,480,185,'light, for 1/299,792,458 of that second = 1 m','lab soft','middle'); const beam=el('circle',{cx:320,cy:200,r:4},metre,'fill acc');
+  const laws=el('g',{},g); const fx=txt(laws,350,90,'F = m · a','big'); fx.setAttribute('font-size','44'); fx.setAttribute('text-anchor','middle'); const ux=txt(laws,350,120,'kg · m / s²','lab soft','middle'); const strike=el('path',{d:'M300 116 H400'},laws,'stroke acc');
+  R.rulers=(p)=>{ drawn(base,seg(p,0,.15)); [...ticks.children].forEach((t,i)=>fade(t,seg(p,0,.2)*48>i?1:0)); ruler.setAttribute('transform','translate('+(700*(1-ease(seg(p,.05,.32))))+' 0)'); fade(ruler,seg(p,.05,.2)); fade(clock,seg(p,.3,.45)); const a=seg(p,.3,.55)*Math.PI*2*3; clock.children[61].setAttribute('d','M150 200 L'+(150+80*Math.sin(a))+' '+(200-80*Math.cos(a))); fade(metre,seg(p,.55,.68)); beam.setAttribute('cx',320+320*ease(seg(p,.55,.78))); fade(laws,seg(p,.8,.9)); drawn(strike,seg(p,.86,.98)); };
+})();
+
+/* ---------- scene 3: the chain ---------- */
+(function(){ const svg=$('s-chain'); const g=el('g',{},svg); const box=(x,y,w,label,cls)=>{ const gg=el('g',{},g); el('rect',{x,y,width:w,height:70,rx:2},gg,'stroke'+(cls||'')); const t=txt(gg,x+w/2,y+42,label,'lab','middle'); t.setAttribute('font-size','14'); return gg; }; const arrow=(x1,x2,y)=>el('path',{d:'M'+x1+' '+y+' H'+x2+' m-10 -7 l10 7 l-10 7'},g,'stroke soft');
+  const y1=110; const b1=box(60,y1,170,'WORLD'), a1=arrow(240,300,y1+35), b2=box(310,y1,170,'A HUMAN'), a2=arrow(490,550,y1+35), b3=box(560,y1,170,'A TEXTBOOK'), a3=arrow(740,800,y1+35), b4=box(810,y1,150,'MACHINE');
+  const t1=txt(g,500,60,'today: AI learns physics from us','lab soft','middle');
+  const y2=290; const c1=box(60,y2,150,'WORLD'), d1=arrow(220,270,y2+35), c2=box(280,y2,150,'RAW EVENTS'), d2=arrow(440,490,y2+35), c3=box(500,y2,150,'MIYOG',' acc'), d3=arrow(660,710,y2+35), c4=box(720,y2,150,'ITS OWN MODEL'), d4=arrow(880,930,y2+35), c5=box(940,y2,50,'?',''), back=el('path',{d:'M965 360 V400 H135 V362 m-7 10 l7 -10 l7 10'},g,'stroke acc'); const t2=txt(g,500,400+20,'experiment, then back to the world. no human in the loop of knowing.','lab acc','middle'); c5.children[1].textContent=''; c5.style.display='none';
+  const cut=el('path',{d:'M300 90 L740 200 M300 200 L740 90'},g,'stroke acc');
+  R.chain=(p)=>{ const top=[b1,a1,b2,a2,b3,a3,b4]; top.forEach((e,i)=>{ fade(e,seg(p,0,.3)*7>i?1:0); }); fade(t1,seg(p,.25,.32)); drawn(cut,seg(p,.6,.68)); const bot=[c1,d1,c2,d2,c3,d3,c4,d4]; bot.forEach((e,i)=>fade(e,seg(p,.62,.85)*8>i?1:0)); drawn(back,seg(p,.82,.95)); fade(t2,seg(p,.9,.98)); [b2,b3].forEach(e=>{ if(p>.6) e.style.opacity=String(1-seg(p,.6,.75)*.7); }); };
+})();
+
+/* ---------- scene 4: the instrument that has to be invented ---------- */
+(function(){ const svg=$('s-device'); const g=el('g',{},svg); const els=[];
+  // ancestors: compass, caliper, hourglass, then this
+  const anc=el('g',{},g); const ax=[80,220,360], names=['compass','caliper','hourglass'];
+  els.push(el('circle',{cx:80,cy:70,r:30},anc,'stroke')); els.push(el('path',{d:'M80 44 L88 70 L80 96 L72 70 Z'},anc,'stroke'));
+  els.push(el('path',{d:'M190 60 H250 M190 60 V90 M225 60 V85 M225 85 H250 M190 90 H250 M232 68 V80 M240 68 V80'},anc,'stroke'));
+  els.push(el('path',{d:'M340 42 H380 L352 70 L380 98 H340 L368 70 Z'},anc,'stroke'));
+  names.forEach((n,i)=>txt(anc,ax[i],120,n,'lab soft','middle'));
+  els.push(el('path',{d:'M410 70 H470 m-10 -7 l10 7 l-10 7'},anc,'stroke soft'));
+  const q=el('rect',{x:490,y:38,width:64,height:64,rx:3},anc,'stroke acc'); els.push(q); const qt=txt(anc,522,80,'?','lab acc','middle'); qt.setAttribute('font-size','30'); txt(anc,522,120,'this','lab acc','middle');
+  const cx=300,cy=380,Rr=170; let hex=''; for(let i=0;i<6;i++){ const a=Math.PI/6+i*Math.PI/3; hex+=(i?' L':'M')+(cx+Rr*Math.cos(a)).toFixed(1)+' '+(cy+Rr*Math.sin(a)).toFixed(1); } els.push(el('path',{d:hex+' Z'},g,'stroke')); els.push(el('circle',{cx,cy,r:Rr*.82},g,'stroke dim'));
+  const cellR=28; const rings=[]; for(let i=0;i<6;i++){ const a=-Math.PI/2+i*Math.PI/3, x=cx+Rr*.62*Math.cos(a), y=cy+Rr*.62*Math.sin(a); const r=el('circle',{cx:x,cy:y,r:cellR,'stroke-dasharray':'4 4'},g,'stroke soft'); rings.push(r); els.push(r); const t=txt(g,x,y+5,'?','lab soft','middle'); t.setAttribute('font-size','16'); els.push(el('path',{d:'M'+(cx+(x-cx)*(1-cellR/(Rr*.62))).toFixed(1)+' '+(cy+(y-cy)*(1-cellR/(Rr*.62))).toFixed(1)+' L'+(cx+(x-cx)*.24).toFixed(1)+' '+(cy+(y-cy)*.24).toFixed(1)},g,'stroke dim')); }
+  els.push(el('rect',{x:cx-40,y:cy-11,width:80,height:22},g,'stroke acc')); let tk=''; for(let i=0;i<10;i++){ const x=cx-34+i*7.5, h=i%3===0?7:5; tk+=' M'+x.toFixed(1)+' '+(cy-h)+' L'+x.toFixed(1)+' '+(cy+h); } els.push(el('path',{d:tk},g,'stroke acc')); txt(g,cx,cy+38,'compares. never assumes.','lab soft','middle');
+  const lab=el('g',{},g); txt(lab,cx-Rr*.9,cy+Rr+10,'unlike processes, to be chosen','lab soft'); txt(lab,cx-Rr*.9,cy+Rr+24,'no dial · no unit · output: which came first','lab soft');
+  els.forEach(e=>{ e.setAttribute('pathLength','1'); e.style.strokeDasharray=e.getAttribute('stroke-dasharray')?e.getAttribute('stroke-dasharray'):'1'; });
+  R.device=(p)=>{ const n=els.length; els.forEach((e,i)=>{ const f=clamp(seg(p,0,.55)*n*1.15-i,0,1); if(!e.getAttribute('stroke-dasharray')||e.getAttribute('stroke-dasharray')==='1') e.style.strokeDashoffset=String(1-f); else e.style.opacity=String(f); }); fade(lab,seg(p,.55,.65)); rings.forEach((r,i)=>{ r.setAttribute('class','stroke'+(p>.84&&i===1?' acc':' soft')); r.setAttribute('stroke-width',p>.84&&i===1?'3':'1.4'); }); };
+})();
+
+/* ---------- scene 5: sandbox ---------- */
+(function(){ const svg=$('s-sandbox'); const g=el('g',{},svg); const box=el('rect',{x:120,y:80,width:400,height:360,rx:4},g,'stroke'); const box2=el('rect',{x:112,y:72,width:416,height:376,rx:6},g,'stroke dim');
+  const nodes=[['Theorist',320,170,'builds the shortest story that fits'],['Destroyer',210,340,'hunts for where it breaks'],['Explorer',430,340,'picks the test that settles it']]; const ng=[]; nodes.forEach(([n,x,y,d],i)=>{ const gg=el('g',{},g); el('circle',{cx:x,cy:y,r:34},gg,'stroke'+(i===0?' acc':'')); const t=txt(gg,x,y+4,n,'lab','middle'); t.setAttribute('font-size','12'); const s=txt(gg,x,y+58,d,'lab soft','middle'); s.setAttribute('font-size','10'); ng.push(gg); });
+  const tri=el('path',{d:'M300 200 L230 310 M240 340 H400 M410 310 L340 200'},g,'stroke dim');
+  const inA=el('path',{d:'M20 260 H112 m-10 -7 l10 7 l-10 7'},g,'stroke acc'); const inT=txt(g,20,248,'events in','lab acc'); const outA=el('path',{d:'M528 260 H620 m-10 -7 l10 7 l-10 7'},g,'stroke acc'); const outT=txt(g,620,248,'experiments out','lab acc','end');
+  const wire=el('path',{d:'M320 448 V520'},g,'stroke dim'); const ppl=el('g',{},g); el('circle',{cx:320,cy:535,r:9},ppl,'stroke soft'); el('path',{d:'M300 556 a20 14 0 0 1 40 0'},ppl,'stroke soft'); const cross=el('path',{d:'M295 470 L345 510 M345 470 L295 510'},g,'stroke acc'); cross.setAttribute('stroke-width','3'); const noT=txt(g,360,495,'no wire to anything that can act on people','lab soft');
+  [box,box2,tri,inA,outA,wire,cross].forEach(e=>{ e.setAttribute('pathLength','1'); e.style.strokeDasharray='1'; });
+  R.sandbox=(p)=>{ drawn(box,seg(p,0,.2)); drawn(box2,seg(p,.1,.28)); ng.forEach((n,i)=>fade(n,seg(p,.33+i*.06,.4+i*.06))); drawn(tri,seg(p,.48,.6)); drawn(inA,seg(p,.62,.7)); fade(inT,seg(p,.66,.72)); drawn(outA,seg(p,.68,.76)); fade(outT,seg(p,.72,.78)); drawn(wire,seg(p,.8,.86)); fade(ppl,seg(p,.82,.88)); drawn(cross,seg(p,.88,.96)); fade(noT,seg(p,.92,1)); };
+})();
+
+/* ---------- scene 6: the number one (live) ---------- */
+R.one=(p,sc)=>{ const cv=$('c-one'); const {ctx,W,H}=fitCanvas(cv); ctx.clearRect(0,0,W,H); const ink=cssVar(sc,'--ink'), soft=cssVar(sc,'--ink-soft'), acc=cssVar(sc,'--acc'); const u=W/1000; ctx.lineCap='round';
+  const rows=6, lane=(H*.55)/rows, top=H*.06, pad=W*.08; const order=ONE.order; const ev=ONE.base; const N=Math.min(ev.length, Math.floor(seg(p,0,.14)*ev.length)+ (p>=.14?ev.length:0));
+  // strip
+  for(let r=0;r<rows;r++){ const y=top+lane*r+lane/2; ctx.strokeStyle='rgba(157,176,205,.22)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke(); glyphCanvas(ctx,SYM[order[r]],pad-30*u-10,y-11*u, 22*u, (p>=.45&&order[r]===ONE.clock)?acc:soft); }
+  const show=Math.min(N, ev.length); const firstTwo=[]; for(let i=0;i<show;i++){ const e=ev[i]; const r=order.indexOf(e.src); const y=top+lane*r+lane/2; const x=pad+(W-2*pad)*i/(ev.length-1); let col=ink, w=1, al=.7; if(p>=.14&&p<.3&&firstTwo.length<2&&(firstTwo.length===0||firstTwo[0].src!==e.src)){ firstTwo.push(e); col=acc; w=3; al=1; } if(p>=.45&&e.src===ONE.clock){ col=acc; al=.9; } ctx.strokeStyle=col; ctx.lineWidth=w; ctx.globalAlpha=al; ctx.beginPath(); ctx.moveTo(x,y-lane*.3); ctx.lineTo(x,y+lane*.3); ctx.stroke(); }
+  ctx.globalAlpha=1;
+  // counting brackets
+  if(p>=.3&&p<.45){ const target=1, clk=ONE.clock; let idx=[]; for(let i=0;i<ev.length&&idx.length<3;i++) if(ev[i].src===target) idx.push(i); if(idx.length>=2){ const rT=order.indexOf(target), rC=order.indexOf(clk); const yT=top+lane*rT+lane/2, yC=top+lane*rC+lane/2; const x1=pad+(W-2*pad)*idx[0]/(ev.length-1), x2=pad+(W-2*pad)*idx[1]/(ev.length-1); ctx.strokeStyle=acc; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x1,yT-lane*.45); ctx.lineTo(x1,yC+lane*.45); ctx.moveTo(x2,yT-lane*.45); ctx.lineTo(x2,yC+lane*.45); ctx.stroke(); let c=0; for(let i=idx[0];i<idx[1];i++) if(ev[i].src===clk) c++; ctx.fillStyle=acc; ctx.font=(24*u)+'px "IBM Plex Mono", monospace'; ctx.fillText('|'.repeat(c)+'  ← '+c+' of these between two of those', x2+12*u, yC+lane*.45+30*u); } }
+  // big glyph
+  const bigKey=p<.14?null:p<.3?'one':p<.45?'count':p<.58?'unit':p<.74?'constant':p<.88?'conditional':'ruler'; if(bigKey){ glyphCanvas(ctx,bigKey,W*.5-60*u,H*.66,120*u,acc); const names={one:'"one"',count:'"count"',unit:'"my ruler"',constant:'"holds"',conditional:'"holds, so far"',ruler:'"did I move, or did it?"'}; ctx.fillStyle=soft; ctx.font=(15*u)+'px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.fillText('the engine\u2019s mark for '+names[bigKey], W*.5, H*.66+150*u); ctx.textAlign='left'; }
+  if(p>=.14&&p<.3) proof('one'); if(p>=.3&&p<.45) proof('count'); if(p>=.45&&p<.58) proof('unit'); if(p>=.58&&p<.74) proof('constant'); if(p>=.74&&p<.88){ proof('conditional'); kill('law1'); } if(p>=.88) proof('ruler');
+  // bars
+  if(p>=.58){ const set=p<.74?ONE.rb:p<.88?ONE.rp:ONE.rr; const prevSet=p<.74?null:p<.88?ONE.rb:ONE.rp; const bx=pad, by=H*.64, bw=W*.5-pad-40*u, bh=H*.34/5; const maxv=Math.max(...ONE.rr.map(r=>isFinite(r.st.mean)?r.st.mean:0))*1.1; set.forEach((r,i)=>{ const y=by+bh*i+bh*.25; const v=isFinite(r.st.mean)?r.st.mean:0; const prev=prevSet?prevSet.find(q=>q.src===r.src):null; const pv=prev&&isFinite(prev.st.mean)?prev.st.mean:v; const t=ease(seg(p,p<.74?.58:p<.88?.74:.88,(p<.74?.58:p<.88?.74:.88)+.06)); const shown=pv+(v-pv)*t; glyphCanvas(ctx,SYM[r.src],bx-30*u-10,y-2,20*u,soft); ctx.fillStyle='rgba(157,176,205,.18)'; ctx.fillRect(bx,y,bw,bh*.5); ctx.fillStyle=r.key==='constant'?acc:soft; ctx.fillRect(bx,y,bw*shown/maxv,bh*.5); if(r.key==='die'&&isFinite(r.st.sd)){ ctx.fillStyle='rgba(157,176,205,.35)'; ctx.fillRect(bx+bw*Math.max(0,shown-r.st.sd)/maxv,y,bw*(2*r.st.sd)/maxv,bh*.5); } ctx.fillStyle=ink; ctx.font=(13*u)+'px "IBM Plex Mono", monospace'; let tag=r.key==='constant'?(shown.toFixed(2)+'  holds'):r.key==='die'?('a die, never a clock'):('slides, '+shown.toFixed(1)); if(p>=.74&&p<.88&&prev&&r.key==='constant'&&Math.abs(v-pv)/pv>.03) tag=pv.toFixed(2)+' → '+v.toFixed(2)+'  broke. holds only where it looked.'; if(p>=.88&&r.key==='constant') tag=pv.toFixed(2)+' → '+v.toFixed(2)+'  ×'+(v/pv).toFixed(3); ctx.fillText(tag, bx+bw+12*u, y+bh*.42); }); ctx.fillStyle=soft; ctx.font=(12*u)+'px "IBM Plex Mono", monospace'; ctx.fillText('each stream, measured in ticks of the engine\u2019s own ruler', bx, by-8*u); }
+};
+
+/* ---------- scene 7: the loop ---------- */
+(function(){ const svg=$('s-loop'); const g=el('g',{},svg); const steps=['REALITY','observe','represent','theorise','predict','attack','test','destroy or keep']; const boxes=[]; const arrows=[]; const x=280; steps.forEach((s,i)=>{ const y=40+i*84; const gg=el('g',{},g); const r=el('rect',{x:x-110,y,width:220,height:48,rx:2},gg,'stroke'+(i===0?' acc':'')); const t=txt(gg,x,y+30,s,'lab','middle'); t.setAttribute('font-size','13'); boxes.push(gg); if(i<steps.length-1){ const a=el('path',{d:'M'+x+' '+(y+48)+' V'+(y+84)+' m-6 -9 l6 9 l6 -9'},g,'stroke soft'); arrows.push(a); } }); const back=el('path',{d:'M390 652 H460 V64 H390 m8 -7 l-8 7 l8 7'},g,'stroke acc'); const who=[['','instrument','engine','the Theorist','the Theorist','the Destroyer','the Explorer','reality']]; steps.forEach((s,i)=>{ if(who[0][i]) txt(g,x+124,40+i*84+30,who[0][i],'lab soft'); });
+  const token=el('circle',{cx:150,cy:64,r:7},g,'fill acc'); const dead=el('path',{d:'M175 640 L245 690 M245 640 L175 690'},g,'stroke acc'); dead.setAttribute('stroke-width','3'); const deadT=txt(g,150,660,'a story that disagreed','lab soft','end'); const keepT=txt(g,470,380,'survivors go around again, attacked harder','lab acc');
+  [...arrows,back,dead].forEach(e=>{ e.setAttribute('pathLength','1'); e.style.strokeDasharray='1'; });
+  R.loop=(p)=>{ const f=seg(p,0,.8)*8; boxes.forEach((b,i)=>{ fade(b,clamp(f-i+1,0,1)); b.children[0].setAttribute('class','stroke'+((i===0||Math.floor(f)===i)?' acc':'')); }); arrows.forEach((a,i)=>drawn(a,clamp(f-i-.5,0,1))); const ty=64+clamp(f,0,7.5)*84; token.setAttribute('cy',ty); drawn(back,seg(p,.8,.92)); fade(keepT,seg(p,.85,.95)); drawn(dead,seg(p,.78,.86)); fade(deadT,seg(p,.8,.88)); };
+})();
+
+/* ---------- scene 8: a theory dies (live) ---------- */
+const DIE=(()=>{ const f=(s)=>[s[1],-9.81*Math.sin(s[0])-.15*s[1]]; const r=RNG(7); const gentle=diff(rk4(f,[r.range(-.12,.12),r.range(-.15,.15)],6)); const attack=diff(rk4(f,[1.43,0],4)); const lin=[(q)=>q.x,(q)=>q.v], sn=[(q)=>Math.sin(q.x),(q)=>q.v]; const cl=lstsq(gentle,lin), cs=lstsq(gentle,sn); return {gentle,attack,cl,cs,lin,sn, eLg:relErr(gentle,lin,cl), eSg:relErr(gentle,sn,cs), eLa:relErr(attack,lin,cl), eSa:relErr(attack,sn,cs)}; })();
+R.die=(p,sc)=>{ const cv=$('c-die'); const {ctx,W,H}=fitCanvas(cv); ctx.clearRect(0,0,W,H); const ink=cssVar(sc,'--ink'), soft=cssVar(sc,'--ink-soft'), acc=cssVar(sc,'--acc'); const u=W/1000; ctx.lineCap='round'; ctx.font=(13*u)+'px "IBM Plex Mono", monospace';
+  if(p<.2){ const n=Math.floor(seg(p,0,.2)*DIE.gentle.length); const pad=W*.08; ctx.strokeStyle='rgba(157,176,205,.25)'; ctx.beginPath(); ctx.moveTo(pad,H/2); ctx.lineTo(W-pad,H/2); ctx.stroke(); ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<n;i++){ const x=pad+(W-2*pad)*i/(DIE.gentle.length-1), y=H/2-DIE.gentle[i].x/.15*H*.3; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); } ctx.stroke(); ctx.fillStyle=soft; ctx.fillText('the needle, over time. this is everything the engine sees.', pad, H*.9); return; }
+  if(p>=.84){ // the box opens: a pendulum
+    const cx=W*.5, cy=H*.2, Lp=H*.55; const t=performance.now()/1000; const th=1.2*Math.cos(t*3.13)*Math.exp(-0.05*(t%40)); const xb=cx+Lp*Math.sin(th), yb=cy+Lp*Math.cos(th); ctx.strokeStyle=soft; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(cx-60*u,cy); ctx.lineTo(cx+60*u,cy); ctx.stroke(); ctx.strokeStyle=ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(xb,yb); ctx.stroke(); ctx.fillStyle=acc; ctx.beginPath(); ctx.arc(xb,yb,18*u,0,6.283); ctx.fill(); ctx.fillStyle=soft; ctx.textAlign='center'; ctx.fillText('inside the box: a pendulum. the engine never learned the word.', cx, H*.93); ctx.textAlign='left'; if(!reduced) requestAnimationFrame(()=>{ if(R._dieP>=.84) R.die(R._dieP,sc); }); R._dieP=p; return; }
+  R._dieP=p;
+  // scatter: pull (a) against push (x), with two fitted stories
+  const showAttack=p>=.42; const pts=DIE.gentle.concat(showAttack?DIE.attack.slice(0,Math.floor(seg(p,.42,.6)*DIE.attack.length)):[]); const xm=showAttack?1.6:.16, am=showAttack?13:1.7; const ox=W*.5, oy=H*.5, sx=W*.42/xm, sy=H*.4/am;
+  ctx.strokeStyle='rgba(157,176,205,.25)'; ctx.beginPath(); ctx.moveTo(W*.06,oy); ctx.lineTo(W*.94,oy); ctx.moveTo(ox,H*.06); ctx.lineTo(ox,H*.94); ctx.stroke(); ctx.fillStyle=soft; ctx.fillText('push →', W*.86, oy+18*u); ctx.fillText('pull', ox+8*u, H*.09);
+  // points: draw a - damping term removed for clarity (use a + c*v so the curve is a function of x)
+  const cLv=DIE.cl[1], cSv=DIE.cs[1];
+  for(let i=0;i<pts.length;i+=2){ const q=pts[i]; const isA=i>=DIE.gentle.length; ctx.fillStyle=isA?acc:ink; ctx.globalAlpha=isA?.9:.55; ctx.beginPath(); ctx.arc(ox+q.x*sx, oy-(q.a-cSv*q.v)*sy, 2.2*u,0,6.283); ctx.fill(); } ctx.globalAlpha=1;
+  const dead=p>=.62; // straight line
+  ctx.setLineDash(dead?[6,6]:[]); ctx.strokeStyle=dead?soft:ink; ctx.lineWidth=dead?1.5:2.5; ctx.beginPath(); for(let i=0;i<=100;i++){ const x=-xm+2*xm*i/100; const y=DIE.cl[0]*x; const px=ox+x*sx, py=oy-y*sy; if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); } ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle=acc; ctx.lineWidth=2.5; ctx.beginPath(); for(let i=0;i<=100;i++){ const x=-xm+2*xm*i/100; const y=DIE.cs[0]*Math.sin(x); const px=ox+x*sx, py=oy-y*sy; if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); } ctx.stroke();
+  // labels
+  const xl=ox+xm*.78*sx; const yl=oy-DIE.cl[0]*xm*.78*sy, ys=oy-DIE.cs[0]*Math.sin(xm*.78)*sy; ctx.fillStyle=dead?soft:ink; ctx.fillText((dead?'✕ straight line   off by '+(DIE.eLa*100).toFixed(0)+'%':'straight line   pull = '+DIE.cl[0].toFixed(2)+' × push'+(showAttack?'':'   fit '+(DIE.eLg*100).toFixed(2)+'%')), Math.min(xl,W*.62), yl-10*u); ctx.fillStyle=acc; ctx.fillText((dead?'curve   off by '+(DIE.eSa*100).toFixed(2)+'%   survives':'curve   pull = '+DIE.cs[0].toFixed(2)+' × sin(push)'+(showAttack?'':'   fit '+(DIE.eSg*100).toFixed(2)+'%')), Math.min(xl,W*.62), ys+22*u);
+  if(showAttack&&!dead){ ctx.fillStyle=acc; ctx.fillText('the Destroyer\u2019s push: '+(1.43).toFixed(2)+', where the two stories disagree most', W*.06, H*.93); }
+  if(dead){ kill('line'); ctx.strokeStyle=acc; ctx.lineWidth=3; const px=ox+xm*.9*sx, py=oy-DIE.cl[0]*xm*.9*sy; ctx.beginPath(); ctx.moveTo(px-14*u,py-14*u); ctx.lineTo(px+14*u,py+14*u); ctx.moveTo(px+14*u,py-14*u); ctx.lineTo(px-14*u,py+14*u); ctx.stroke(); }
+};
+
+
+/* ---------- scene 11: scale ---------- */
+(function(){ const svg=$('s-scale'); const g=el('g',{},svg); const items=['fire','the wheel','electricity','the internet','AI','MIYOG']; const gs=[]; items.forEach((s,i)=>{ const x=80+i*168; const gg=el('g',{},g); const h=i===5?260:120+i*18; el('rect',{x:x-44,y:330-h,width:88,height:h},gg,'stroke'+(i===5?' acc':'')); txt(gg,x,352,s,'lab','middle'); const t2=txt(gg,x,330-h-12,i===5?'changes who knows':'changed what we could do','lab soft','middle'); t2.setAttribute('font-size','9.5'); gs.push(gg); gg.children[0].setAttribute('pathLength','1'); gg.children[0].style.strokeDasharray='1'; }); const base=el('path',{d:'M20 330 H980'},g,'stroke soft');
+  R.scale=(p)=>{ gs.forEach((gg,i)=>{ const f=seg(p,.02+i*.08,.14+i*.08); gg.children[0].style.strokeDashoffset=String(1-f); fade(gg.children[1],f); fade(gg.children[2],i===5?seg(p,.55,.65):f); if(i===5){ gg.children[0].setAttribute('stroke-width', p>.5?'3':'1.4'); } }); };
+})();
+
+
+
+
+/* ---------- title and closing: the full stop is the first event ---------- */
+R.title=(p)=>{ const c=$('tcard'); c.classList.add('in'); const s=1+ease(seg(p,.15,.85))*7; c.style.transform='translate(-50%,-50%) scale('+s+')'; c.style.opacity=String(1-seg(p,.55,.9)); $('tcl').style.opacity=String(.85*(1-seg(p,.1,.35))); $('tcr').style.opacity=String(.85*(1-seg(p,.1,.35))); };
+R.closing=(p)=>{ const c=$('ccard'); c.classList.add('in'); const s=1.8-ease(seg(p,0,.7))*.8; c.style.transform='translate(-50%,-50%) scale('+s+')'; c.style.opacity=String(seg(p,0,.4)); };
+
+/* ---------- Lila, side by side ---------- */
+(function(){ const svg=$('s-lila'); if(!svg) return; const g=el('g',{},svg); const box=(x,y,w,label,cls)=>{ const gg=el('g',{},g); el('rect',{x,y,width:w,height:64,rx:2},gg,'stroke'+(cls||'')); const t=txt(gg,x+w/2,y+38,label,'lab','middle'); t.setAttribute('font-size','13'); return gg; }; const arrow=(x1,x2,y)=>el('path',{d:'M'+x1+' '+y+' H'+x2+' m-10 -7 l10 7 l-10 7'},g,'stroke soft');
+  const y1=90; const l0=txt(g,60,60,'LILA SCIENCES · Cambridge · $550M raised · valued above $1.3B','lab soft'); const L=[box(60,y1,180,'HUMAN SCIENCE'),arrow(250,300,y1+32),box(310,y1,170,'AI MODEL'),arrow(490,540,y1+32),box(550,y1,170,'ROBOT LABS'),arrow(730,780,y1+32),box(790,y1,150,'DISCOVERY')];
+  const y2=280; const m0=txt(g,60,250,'MIYOG · Bengaluru · $0 raised · one browser','lab acc'); const Mx=[box(60,y2,180,'WHAT HAPPENS',' acc'),arrow(250,300,y2+32),box(310,y2,170,'ITS OWN RULERS',' acc'),arrow(490,540,y2+32),box(550,y2,170,'ITS OWN LAWS',' acc'),arrow(730,780,y2+32),box(790,y2,150,'EXPERIMENT',' acc')];
+  const back=el('path',{d:'M865 344 V385 H150 V346 m-7 10 l7 -10 l7 10'},g,'stroke acc'); back.setAttribute('pathLength','1'); back.style.strokeDasharray='1';
+  const note=txt(g,150,200,'one step earlier: before any human wrote anything down','lab acc'); const strike=el('path',{d:'M60 122 H240'},g,'stroke acc'); strike.setAttribute('stroke-width','3'); strike.setAttribute('pathLength','1'); strike.style.strokeDasharray='1';
+  R.lila=(p)=>{ L.forEach((e,i)=>fade(e,seg(p,0,.3)*7>i?1:0)); fade(l0,seg(p,0,.08)); fade(m0,seg(p,.38,.45)); Mx.forEach((e,i)=>fade(e,seg(p,.4,.66)*7>i?1:0)); fade(note,seg(p,.5,.58)); drawn(strike,seg(p,.44,.54)); drawn(back,seg(p,.7,.85)); };
+})();
+
+/* ---------- the map: every problem is a dot; the circle is what MIYOG understands ---------- */
+const CLUSTERS=[[.06,-.9,'the second'],[.1,2.2,'the metre'],[.16,.6,'gravity and the quantum'],[.2,3.6,'dark matter'],[.23,-2.4,'fusion'],[.3,1.4,'room-temperature superconductors'],[.34,-.4,'batteries'],[.37,2.9,'catalysts'],[.43,.2,'the whole cell'],[.47,-1.6,'antibiotic resistance'],[.5,3.3,'Alzheimer’s'],[.56,1.0,'cancer'],[.6,-2.9,'aging'],[.64,2.0,'the brain'],[.7,-.9,'energy for a planet'],[.76,.4,'propulsion'],[.84,2.6,'the beginning'],[.9,-2.0,'the end']];
+const MAP=(()=>{ const r=RNG(77); const dots=[]; for(let i=0;i<1400;i++){ const a=r.next()*6.283, d=Math.sqrt(r.next()); dots.push({a,d}); } const gal=[]; for(let i=0;i<900;i++){ const t=r.next()*6.283*2.2, arm=Math.floor(r.next()*3), rr=.15+t/(6.283*2.2)*.9; const ang=t+arm*2.094+ (r.next()-.5)*.35; gal.push({x:rr*Math.cos(ang),y:rr*Math.sin(ang)*.55,s:r.next()}); } return {dots,gal}; })();
+R.map=(p,sc)=>{ const cv=$('c-map'); const {ctx,W,H}=fitCanvas(cv); ctx.clearRect(0,0,W,H); const ink=cssVar(sc,'--ink'), soft=cssVar(sc,'--ink-soft'), acc=cssVar(sc,'--acc'); const u=W/1000; const cx=W/2, cy=H/2, F=Math.min(W,H)*.46;
+  const rings=[[.12,'rulers and laws'],[.26,'physics · chemistry'],[.4,'cells · proteins · the body'],[.54,'disease · aging'],[.68,'a finished map'],[.8,'the menu']]; const R0=p<.12?.08*seg(p,0,.12):p<.26?.08+.17*seg(p,.12,.26):p<.4?.25+.2*seg(p,.26,.4):p<.54?.45+.2*seg(p,.4,.54):p<.68?.65+.25*seg(p,.54,.68):p<.8?.9+.1*seg(p,.68,.8):1.0; const rad=R0*F;
+  if(p<.92){ for(const d of MAP.dots){ const x=cx+F*d.d*Math.cos(d.a), y=cy+F*d.d*Math.sin(d.a); const inside=d.d*F<=rad; ctx.fillStyle=inside?acc:soft; ctx.globalAlpha=inside?.95:.35; ctx.beginPath(); ctx.arc(x,y,inside?2.4*u:1.6*u,0,6.283); ctx.fill(); } ctx.globalAlpha=1; ctx.strokeStyle=acc; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(cx,cy,Math.max(rad,1),0,6.283); ctx.stroke(); ctx.font=(11*u)+'px "IBM Plex Mono", monospace'; ctx.textAlign='left'; for(const [rf,ang,label] of CLUSTERS){ const x=cx+F*rf*Math.cos(ang), y=cy+F*rf*Math.sin(ang); const inside=rf*F<=rad; ctx.fillStyle=inside?acc:soft; ctx.globalAlpha=inside?1:.55; for(let k=0;k<7;k++){ const a2=k*0.9, rr=(3+k%3*2.5)*u; ctx.beginPath(); ctx.arc(x+rr*Math.cos(a2)*1.6, y+rr*Math.sin(a2)*1.6, inside?2.6*u:1.8*u,0,6.283); ctx.fill(); } ctx.globalAlpha=1; ctx.fillText((inside?'✓ ':'')+label, x+12*u, y+4*u); } ctx.fillStyle=soft; ctx.font=(12*u)+'px "IBM Plex Mono", monospace'; ctx.textAlign='center'; rings.forEach(([a,l],i)=>{ if(p>=a){ const rr=[.08,.25,.45,.65,.9,1.0][i]*F; ctx.fillStyle=i===rings.length-1||p<(rings[i+1]?rings[i+1][0]:2)?acc:soft; ctx.fillText(l, cx, cy-rr-8*u); } }); ctx.textAlign='left'; const inCount=MAP.dots.filter(d=>d.d*F<=rad).length; ctx.fillStyle=soft; ctx.fillText(inCount.toLocaleString()+' of '+MAP.dots.length.toLocaleString()+' problems inside the circle', W*.04, H*.96); if(p>=.68){ ctx.fillStyle=acc; ctx.font=(16*u)+'px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.fillText(inCount===MAP.dots.length?'solved game':'', cx, cy+6*u); ctx.textAlign='left'; } }
+  else { const t=seg(p,.92,1); ctx.fillStyle=acc; ctx.beginPath(); ctx.arc(cx,cy,3*u,0,6.283); ctx.fill(); ctx.fillStyle=soft; ctx.font=(12*u)+'px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.fillText('one rock · 10 billion', cx, cy+20*u); const n=Math.floor(MAP.gal.length*ease(t)); for(let i=0;i<n;i++){ const g=MAP.gal[i]; ctx.fillStyle=g.s>.85?acc:ink; ctx.globalAlpha=.5+.5*g.s; ctx.beginPath(); ctx.arc(cx+g.x*F*1.05, cy+g.y*F*1.05, (g.s>.85?2.4:1.4)*u,0,6.283); ctx.fill(); } ctx.globalAlpha=1; if(t>.9){ ctx.fillStyle=acc; ctx.font=(15*u)+'px "IBM Plex Mono", monospace'; ctx.fillText('500 billion · fifty to a hundred years after the map is finished', cx, H*.95); } ctx.textAlign='left'; }
+};
+
+
+/* ---------- why start from zero: flat, then vertical ---------- */
+(function(){ const svg=$('s-why'); if(!svg) return; const g=el('g',{},svg); el('path',{d:'M60 460 H660 M60 460 V40'},g,'stroke soft'); txt(g,660,485,'years','lab soft','end'); txt(g,52,40,'what is understood','lab soft','end').setAttribute('transform','rotate(-90 52 40)');
+  const pts=[]; for(let i=0;i<=100;i++){ const x=i/100; const y=Math.pow(x,7)*0.92+x*0.03; pts.push([60+x*600, 460-y*410]); } const d='M'+pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L'); const curve=el('path',{d},g,'stroke acc'); curve.setAttribute('stroke-width','2.4'); curve.setAttribute('pathLength','1'); curve.style.strokeDasharray='1';
+  const human=el('path',{d:'M60 440 L660 300'},g,'stroke dim'); const hT=txt(g,600,292,'human science, faster','lab soft','end');
+  const m1=el('g',{},g); el('path',{d:'M240 460 V380'},m1,'stroke dim'); txt(m1,240,372,'year 3: rulers, laws','lab soft','middle');
+  const m2=el('g',{},g); el('path',{d:'M456 460 V300'},m2,'stroke dim'); txt(m2,456,292,'the map complete enough','lab soft','middle');
+  const m3=el('g',{},g); txt(m3,600,70,'everything, in one motion','lab acc','end');
+  const ceiling=el('path',{d:'M60 300 H660'},g,'stroke dim'); const cT=txt(g,64,292,'the ceiling: what humans can think','lab soft');
+  R.why=(p)=>{ drawn(curve,seg(p,.05,.95)); fade(human,seg(p,.25,.35)); fade(hT,seg(p,.28,.36)); fade(ceiling,seg(p,.3,.4)); fade(cT,seg(p,.3,.4)); fade(m1,seg(p,.5,.58)); fade(m2,seg(p,.72,.8)); fade(m3,seg(p,.85,.95)); };
+})();
+
+
+/* ---------- not artificial: two ways to build a mind ---------- */
+(function(){ const svg=$('s-notai'); if(!svg) return; const g=el('g',{},svg);
+  const left=el('g',{},g); txt(left,170,40,'AI · AGI','lab soft','middle');
+  // stack of books = human data
+  const books=el('g',{},left); for(let i=0;i<6;i++){ el('rect',{x:110,y:380-i*22,width:120,height:18,rx:1},books,'stroke soft'); } txt(left,170,420,'human data · human brains','lab soft','middle');
+  const brain=el('g',{},left); el('path',{d:'M130 200 C120 150 190 130 200 170 C230 140 260 190 230 220 C250 260 180 280 170 250 C130 270 100 230 130 200 Z'},brain,'stroke'); el('path',{d:'M170 165 C165 200 175 220 170 250'},brain,'stroke dim'); txt(left,170,300,'a copy of us, faster','lab soft','middle');
+  const up1=el('path',{d:'M170 375 V290 m-7 10 l7 -10 l7 10'},left,'stroke soft');
+  const right=el('g',{},g); txt(right,520,40,'MIYOG','lab acc','middle');
+  const ticks=el('g',{},right); for(let i=0;i<22;i++){ const x=440+i*7.5; el('path',{d:'M'+x+' 372 V392'},ticks,'stroke'); } txt(right,520,420,'events · nothing else','lab soft','middle');
+  const gl=el('path',{d:glyphPath('miyog-core'),transform:'translate(430 120) scale(9)'},right,'stroke acc'); gl.setAttribute('stroke-width','.45'); txt(right,520,300,'alien, on purpose','lab acc','middle');
+  const up2=el('path',{d:'M520 365 V300 m-7 10 l7 -10 l7 10'},right,'stroke acc');
+  const ceil=el('path',{d:'M60 120 H340'},g,'stroke dim'); const cT=txt(g,60,112,'ceiling: what humans can think','lab soft');
+  const q=txt(g,350,470,'intelligence: getting what you want. wisdom: knowing what to want. (Naval Ravikant)','lab soft','middle'); const q2=txt(g,350,492,'super intelligence: getting what you want from the universe itself.','lab acc','middle');
+  [up1,up2,ceil,gl].forEach(e=>{ e.setAttribute('pathLength','1'); e.style.strokeDasharray='1'; });
+  R.notai=(p)=>{ fade(left,seg(p,0,.12)); drawn(up1,seg(p,.08,.2)); fade(ceil,seg(p,.14,.22)); fade(cT,seg(p,.14,.22)); fade(q,seg(p,.26,.36)); fade(right,seg(p,.5,.6)); drawn(up2,seg(p,.56,.68)); drawn(gl,seg(p,.6,.78)); fade(q2,seg(p,.52,.62)); };
+})();
+
+/* ---------- needs page routing ---------- */
+(function(){ const apply=()=>{ const on=location.hash==='#needs'; document.body.classList.toggle('show-needs',on); if(on) scrollTo(0,0); else if(location.hash==='#top'){ history.replaceState(null,'',' '); } tick(); }; addEventListener('hashchange',apply); apply(); })();
+
+/* ---------- index ---------- */
+(function(){ const idx=$('index'), btn=$('indexBtn'), list=$('indexList'); scenes.forEach((s,i)=>{ const li=document.createElement('li'); li.innerHTML='<i>'+String(i).padStart(2,'0')+'</i><span>'+s.dataset.name+'</span>'; li.addEventListener('click',()=>{ idx.classList.remove('open'); btn.setAttribute('aria-expanded','false'); s.scrollIntoView({behavior:reduced?'auto':'smooth'}); }); list.appendChild(li); }); btn.addEventListener('click',()=>{ const o=idx.classList.toggle('open'); btn.setAttribute('aria-expanded',String(o)); btn.textContent=o?'index ↑':'index ↓'; }); document.addEventListener('click',(e)=>{ if(!idx.contains(e.target)){ idx.classList.remove('open'); btn.textContent='index ↓'; } }); window.MIYOG_indexItems=[...list.children]; })();
+
+tick(); setTimeout(tick,50);
+})();
+</script>
+</body>
+</html>
