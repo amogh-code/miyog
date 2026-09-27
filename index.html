@@ -10,15 +10,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#ECE8DD; --paper-2:#E1DCCD; --pink:#141C2E; --pink-soft:#4B5570; --prule:#B9B3A3;
+  --paper:#F2EFB8; --paper-2:#E9E49C; --pink:#101725; --pink-soft:#454F66; --prule:#C2BC7A;
   --blue:#0D2B55; --blue-2:#133A6C; --bink:#E7ECF3; --bink-soft:#9DB0CD; --brule:#2E5590;
-  --acc-p:#1F4FB8; --acc-b:#8FB3F2; --white:#F7F5EF;
+  --acc-p:#123A8F; --acc-b:#E4DE72; --white:#FBF9D8;
   --display:"Fraunces", Georgia, serif; --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
   --ease:cubic-bezier(.23,1,.32,1);
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --paper:#ECE8DD; } }
-:root[data-theme="dark"]{ --paper:#ECE8DD; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --paper:#F2EFB8; } }
+:root[data-theme="dark"]{ --paper:#F2EFB8; }
 html{ scroll-padding-top:env(safe-area-inset-top,0px); }
 *,*::before,*::after{ box-sizing:inherit; }
 body{ margin:0; background:var(--blue); color:var(--bink); font-family:var(--display); font-optical-sizing:auto; font-size:clamp(1.05rem,1rem + .3vw,1.2rem); line-height:1.5; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
@@ -35,7 +35,7 @@ canvas,svg{ display:block; max-width:100%; }
 .scene .stage{ position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:clamp(1.5rem,4vw,5rem); padding:0 clamp(1.25rem,5vw,6rem); }
 .scene.paper{ background:var(--paper); color:var(--pink); --ink:var(--pink); --ink-soft:var(--pink-soft); --rule:var(--prule); --acc:var(--acc-p); }
 .scene.blue{ background:var(--blue); color:var(--bink); --ink:var(--bink); --ink-soft:var(--bink-soft); --rule:var(--brule); --acc:var(--acc-b); }
-.scene.blue .stage::before{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.5; background-image:linear-gradient(rgba(231,236,243,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(231,236,243,.06) 1px, transparent 1px); background-size:48px 48px; }
+.scene.blue .stage::before{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.5; background-image:linear-gradient(rgba(233,228,156,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(233,228,156,.07) 1px, transparent 1px); background-size:48px 48px; }
 .grain{ position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:multiply; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>"); }
 .blue .grain{ mix-blend-mode:screen; opacity:.06; }
 .viz{ position:relative; width:100%; height:min(72vh,72svh); display:grid; place-items:center; }
@@ -86,7 +86,7 @@ body[data-ground="paper"] .rail .name{ color:var(--pink-soft); }
 @media (max-width:900px){ .rail{ display:none; } }
 
 /* ledger of proofs, bottom edge */
-.ledger{ position:fixed; left:0; right:0; bottom:0; z-index:20; font-family:var(--mono); font-size:.7rem; padding:.45rem clamp(1.25rem,5vw,6rem) calc(.45rem + env(safe-area-inset-bottom,0px)); background:var(--paper); color:var(--pink); border-top:1px solid var(--prule); display:flex; gap:1.6rem; flex-wrap:wrap; transform:translateY(100%); transition:transform .5s var(--ease); }
+.ledger{ position:fixed; left:0; right:0; bottom:0; z-index:20; font-family:var(--mono); font-size:.7rem; padding:.45rem clamp(1.25rem,5vw,6rem) calc(.45rem + env(safe-area-inset-bottom,0px)); background-color:var(--paper); background-image:var(--paper-bg); background-size:var(--paper-size); background-blend-mode:multiply; color:var(--pink); border-top:1px solid var(--prule); display:flex; gap:1.6rem; flex-wrap:wrap; transform:translateY(100%); transition:transform .5s var(--ease); }
 .ledger.show{ transform:none; }
 .ledger span{ color:var(--pink-soft); } .ledger b{ font-weight:500; color:var(--pink); }
 .ledger .kill{ text-decoration:line-through; }
@@ -123,6 +123,8 @@ dfn:hover{ color:var(--acc); }
 
 /* finale */
 .final{ padding:clamp(4rem,10vw,9rem) clamp(1.25rem,5vw,6rem) clamp(6rem,10vw,9rem); background:var(--paper); color:var(--pink); position:relative; }
+.final::before{ content:""; position:absolute; inset:0; pointer-events:none; z-index:0; background-image:var(--fibre), var(--speck); background-size:300px 300px, 220px 220px; mix-blend-mode:multiply; opacity:.42; }
+.final > *{ position:relative; z-index:1; }
 .final .wrap{ max-width:1100px; margin:0 auto; }
 .final h2{ font-size:clamp(2rem,1.4rem + 3vw,4.2rem); max-width:22ch; }
 .final .ask{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.5rem; margin-top:2.5rem; }
@@ -160,7 +162,7 @@ dfn:hover{ color:var(--acc); }
 .index button{ background:none; border:0; color:var(--bink-soft); cursor:pointer; padding:.3rem 0; letter-spacing:.04em; }
 body[data-ground="paper"] .index button{ color:var(--pink-soft); }
 .index button:hover{ color:var(--acc-b); } body[data-ground="paper"] .index button:hover{ color:var(--acc-p); }
-.index ol{ list-style:none; margin:.4rem 0 0; padding:.6rem .8rem; background:var(--paper); color:var(--pink); border:1px solid var(--prule); display:none; max-height:70vh; overflow:auto; min-width:16rem; box-shadow:0 12px 30px -16px rgba(20,28,46,.5); }
+.index ol{ list-style:none; margin:.4rem 0 0; padding:.6rem .8rem; background-color:var(--paper); background-image:var(--paper-bg); background-size:var(--paper-size); background-blend-mode:multiply; color:var(--pink); border:1px solid var(--prule); display:none; max-height:70vh; overflow:auto; min-width:16rem; box-shadow:0 12px 30px -16px rgba(20,28,46,.5); }
 .index.open ol{ display:block; }
 .index li{ padding:.25rem 0; cursor:pointer; color:var(--pink-soft); display:grid; grid-template-columns:1.6rem 1fr; gap:.4rem; }
 .index li:hover,.index li.on{ color:var(--acc-p); }
@@ -171,6 +173,8 @@ body[data-ground="paper"] .index button{ color:var(--pink-soft); }
 .tcard.in h1 .L:nth-child(1){ transition-delay:.05s } .tcard.in h1 .L:nth-child(2){ transition-delay:.13s } .tcard.in h1 .L:nth-child(3){ transition-delay:.21s } .tcard.in h1 .L:nth-child(4){ transition-delay:.29s } .tcard.in h1 .L:nth-child(5){ transition-delay:.37s } .tcard.in h1 .L:nth-child(6){ transition-delay:.5s }
 .tcard .tag,.tcard .by{ opacity:0; transition:opacity .5s var(--ease) .7s; } .tcard.in .tag,.tcard.in .by{ opacity:1; }
 /* needs page */
+.needs::before{ content:""; position:fixed; inset:0; pointer-events:none; z-index:0; background-image:var(--fibre), var(--speck); background-size:300px 300px, 220px 220px; mix-blend-mode:multiply; opacity:.42; }
+.needs .nwrap{ position:relative; z-index:1; }
 .needs{ display:none; background:var(--paper); color:var(--pink); min-height:100vh; padding:clamp(2rem,6vw,5rem) clamp(1.25rem,5vw,6rem) 6rem; position:relative; z-index:40; }
 .needs .nwrap{ max-width:1000px; margin:0 auto; }
 .needs .back{ font-family:var(--mono); font-size:.76rem; color:var(--pink-soft); text-decoration:none; }
@@ -194,6 +198,65 @@ body.show-needs .needs{ display:block; }
 a.needslink{ color:var(--bink-soft); text-decoration:none; font-family:var(--mono); font-size:.72rem; }
 a.needslink:hover{ color:var(--acc-b); }
 @media (max-width:900px){ .needs .ngrid{ grid-template-columns:1fr; } .needs .ntab td:first-child{ width:auto; } }
+
+.needs .nhero{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:clamp(1.5rem,4vw,4rem); align-items:center; margin-top:2rem; }
+.needs .nhero svg{ width:100%; height:auto; }
+.needs .nhero .stroke{ fill:none; stroke:var(--pink); stroke-width:1.3; stroke-linecap:round; }
+.needs .nhero .acc{ stroke:var(--acc-p); }
+.needs .nhero text{ font-family:var(--mono); font-size:10px; fill:var(--pink-soft); }
+.needs .sub{ color:var(--pink-soft); font-size:.92rem; margin-top:-.4rem; }
+.needs .seats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1.2rem 1.8rem; margin-top:1rem; }
+.needs .seat{ border-top:1px solid var(--prule); padding-top:.8rem; position:relative; transition:border-color .25s var(--ease); }
+.needs .seat:hover{ border-color:var(--acc-p); }
+.needs .seat .n{ font-family:var(--mono); font-size:.72rem; color:var(--acc-p); }
+.needs .seat b{ display:block; font-weight:400; font-size:1.18rem; letter-spacing:-.01em; margin:.3rem 0 .4rem; line-height:1.2; }
+.needs .seat p{ font-size:.9rem; color:var(--pink-soft); line-height:1.5; }
+.needs .seat .tagline{ font-family:var(--mono); font-size:.68rem; color:var(--pink-soft); letter-spacing:.06em; text-transform:uppercase; }
+.needs .money{ margin-top:.8rem; }
+.needs .money .mrow{ display:grid; grid-template-columns:minmax(0,1fr) 5.5rem; gap:1rem; align-items:center; padding:.45rem 0; border-bottom:1px solid var(--prule); cursor:default; }
+.needs .money .mbar{ height:10px; background:var(--paper-2); position:relative; overflow:hidden; }
+.needs .money .mbar i{ position:absolute; inset:0 auto 0 0; width:0; background:var(--acc-p); transition:width .8s var(--ease); }
+.needs .money .ml{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:.76rem; color:var(--pink-soft); margin-bottom:.22rem; }
+.needs .money .ml b{ color:var(--pink); font-weight:500; }
+.needs .money .mv{ text-align:right; font-family:var(--mono); font-size:.8rem; }
+.needs .money .why{ grid-column:1/-1; max-height:0; overflow:hidden; color:var(--pink-soft); font-size:.9rem; line-height:1.5; transition:max-height .35s var(--ease), padding .3s; }
+.needs .money .mrow:hover .why,.needs .money .mrow:focus-within .why{ max-height:9rem; padding:.35rem 0 .2rem; }
+.needs .money .mtot{ display:flex; justify-content:space-between; align-items:baseline; border-top:2px solid var(--pink); padding-top:.6rem; margin-top:.5rem; font-family:var(--mono); font-size:.78rem; }
+.needs .money .mtot b{ font-family:var(--display); font-weight:300; font-size:2.6rem; letter-spacing:-.02em; }
+.needs .twocol{ display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:1rem; }
+.needs .twocol b{ font-weight:400; font-size:1.15rem; display:block; margin-bottom:.5rem; }
+.needs .twocol ul{ margin:0; padding-left:1.1rem; color:var(--pink-soft); font-size:.92rem; line-height:1.55; }
+.needs .twocol li{ margin-bottom:.4rem; }
+.needs .contact{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:2.5rem; margin-top:1rem; align-items:start; }
+.needs .mail{ margin-top:1rem; font-size:clamp(1.1rem,1rem + 1vw,1.7rem); }
+.needs .mail a{ color:var(--pink); text-decoration:none; border-bottom:2px solid var(--acc-p); }
+.needs .mail a:hover{ color:var(--acc-p); }
+.needs .mail .at{ color:var(--acc-p); }
+.needs .cform{ display:grid; gap:.6rem; }
+.needs .cform label{ display:grid; gap:.25rem; font-family:var(--mono); font-size:.72rem; color:var(--pink-soft); letter-spacing:.04em; text-transform:uppercase; }
+.needs .cform input,.needs .cform select,.needs .cform textarea{ font:inherit; font-size:.95rem; padding:.5rem .6rem; border:1px solid var(--prule); background:var(--white); color:var(--pink); }
+.needs .cform input:focus,.needs .cform textarea:focus,.needs .cform select:focus{ outline:2px solid var(--acc-p); outline-offset:1px; }
+.needs .crow{ display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.2rem; }
+.needs .btn{ font-family:var(--mono); font-size:.8rem; padding:.6rem 1rem; border:1px solid var(--acc-p); background:var(--acc-p); color:var(--white); cursor:pointer; }
+.needs .btn.ghost{ background:transparent; color:var(--pink); }
+.needs .btn:hover{ background:var(--pink); border-color:var(--pink); color:var(--white); }
+@media (max-width:860px){ .needs .nhero,.needs .twocol,.needs .contact{ grid-template-columns:1fr; } }
+
+/* ---------- paper: the lemon ground gets fibre, the blue ground keeps its graph grid ---------- */
+:root{
+  --fibre:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='.5 .85' numOctaves='5' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .40 0 0 0 0 .38 0 0 0 0 .26 0 0 0 .35 0'/></filter><rect width='420' height='420' filter='url(%23f)'/></svg>");
+  --speck:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='s'><feTurbulence type='turbulence' baseFrequency='.95' numOctaves='1' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .30 0 0 0 0 .28 0 0 0 0 .18 0 0 0 .8 0'/><feComponentTransfer><feFuncA type='discrete' tableValues='0 0 0 0 0 0 0 0 0 0 0 0 0 0 1'/></feComponentTransfer></filter><rect width='220' height='220' filter='url(%23s)'/></svg>");
+  --strand:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><g stroke='%23a09a72' stroke-width='.7' fill='none' opacity='.5'><path d='M40 90 q30 -12 62 4'/><path d='M310 40 q22 14 40 6'/><path d='M120 420 q40 -18 70 -2'/><path d='M470 300 q18 16 44 10'/><path d='M230 240 q26 10 50 -6'/><path d='M520 520 q-30 -14 -58 2'/><path d='M60 300 q20 12 36 2'/><path d='M400 470 q34 -14 60 4'/></g></svg>");
+  --paper-bg:var(--fibre), var(--speck), var(--strand);
+  --paper-size:420px 420px, 200px 200px, 600px 600px;
+}
+/* the grain layer already sits inside every stage; on lemon scenes it becomes paper fibre */
+.scene.paper .grain{ opacity:.45; mix-blend-mode:multiply;
+  background-image:var(--paper-bg); background-size:var(--paper-size); }
+.final::before, .needs::before{ content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:var(--paper-bg); background-size:var(--paper-size); mix-blend-mode:multiply; opacity:.4; }
+.needs::before{ position:fixed; }
+.final > *, .needs .nwrap{ position:relative; z-index:1; }
 /* problem field */
 .probs text{ font-family:var(--mono); font-size:11px; }
 </style>
@@ -296,15 +359,15 @@ a.needslink:hover{ color:var(--acc-b); }
   </div>
 </section>
 
-<!-- 4. The instrument -->
-<section class="scene paper" data-len="3.5" data-scene="device" data-name="The instrument">
+<!-- 4. What it reads -->
+<section class="scene paper" data-len="3.5" data-scene="device" data-name="What it is allowed to know">
   <div class="stage"><div class="grain"></div>
     <div class="viz"><svg id="s-device" viewBox="0 0 600 640"></svg></div>
     <div class="cap">
-      <div data-at="0"><span class="eyebrow">the hardware</span><h2>An instrument that has to be invented.</h2><p>The compass, the first time. The vernier caliper, the first time. Somebody had to build a thing that measured what nothing had measured before. This is that job again.</p></div>
-      <div data-at=".3"><h2>It will have no unit inside it.</h2><p>Every instrument on Earth carries a human definition at its heart. A second. A gram. A metre. This one carries none. It can compare. It is not allowed to assume.</p></div>
-      <div data-at=".58"><h2>What goes inside is not decided. That is the first year's work.</h2><p>Many unlike physical processes, so that no single one can secretly become the second. Which ones, in what body, at what scale: the instrument lead is hired to find out.</p></div>
-      <div data-at=".84"><h2>The one doing the measuring sets the standard.</h2><p>MIYOG elects its own ruler from whatever it is given. Fires it when it fails. <span class="k">A human number cannot leak out of a device that has none.</span></p></div>
+      <div data-at="0"><span class="eyebrow">what it is allowed to know</span><h2>It is given events. Nothing else.</h2><p>Something happened, then something else, and some happenings can be told apart. No units. No names. No numbers handed in. No physics.</p></div>
+      <div data-at=".3"><h2>It decides what is worth reading.</h2><p>The channels it listens to are not fixed by us. When what it reads cannot tell apart two situations that behave differently, it says so and adds a channel. When nothing it believes uses a channel, it drops it and checks the world still makes sense without it. Every one of those changes is recorded with its reason and how to undo it.</p></div>
+      <div data-at=".58"><h2>It has already done this.</h2><p>In the running engine, every rule it has established was found through an interface it changed itself. <span class="k">Version three</span> of that interface, on every world so far: one channel added, one dropped, each one measured.</p></div>
+      <div data-at=".84"><h2>The one thing we hand it.</h2><p>That distinguishable events exist and can reach it. That is the whole gift. Everything above it, the counting, the ruler, the laws, the shape of what it listens to, is its own work, and the list of what we gave it is published with every version.</p></div>
     </div>
   </div>
 </section>
@@ -314,9 +377,9 @@ a.needslink:hover{ color:var(--acc-b); }
   <div class="stage"><div class="grain"></div>
     <div class="viz"><svg id="s-sandbox" viewBox="0 0 640 560"></svg></div>
     <div class="cap">
-      <div data-at="0"><span class="eyebrow">the mind</span><h2>A sealed mind where reality gets argued about.</h2><p>Where it runs is not decided and does not matter. A chip. A cloud. A laptop. The target is small: about a gigabyte of state and about twenty watts, because a brain does its work on that. What matters is what gets in.</p></div>
+      <div data-at="0"><span class="eyebrow">the mind</span><h2>A sealed mind where reality gets argued about.</h2><p>Where it runs does not matter. What matters is what gets in. Nothing enters except events. Nothing leaves except experiments. No textbooks, no units, no internet, and no wire to anything that can act on people.</p></div>
       <div data-at=".33"><h2>Inside, three minds argue.</h2><p>One builds. One breaks. One chooses the test. You will meet them in a moment. The point of the walls is what they keep out.</p></div>
-      <div data-at=".62"><h2>Nothing goes in except events. Nothing comes out except experiments.</h2><p>No textbooks. No units. No internet. And no wire from the mind to anything that can act on people. Its only reach into the world is the next test.</p></div>
+      <div data-at=".62"><h2>It is running.</h2><p>Not a plan. A program. It opens a world it has never seen, watches, invents candidate rules, finds the one experiment where those rules disagree, runs it, and deletes the losers. When nothing it can say fits what it sees, it changes what it is able to say. <span class="k">You can scroll into two of its moments below.</span></p></div>
     </div>
   </div>
 </section>
@@ -380,6 +443,32 @@ a.needslink:hover{ color:var(--acc-b); }
       <div data-at=".42"><h2>The Destroyer swings it hard.</h2><p>It chooses the push where the two stories disagree the most, and does that.</p></div>
       <div data-at=".62"><h2>The straight line shatters.</h2><p>Off by a quarter. Struck out, never to return. The curve is off by one part in ten thousand. It survives, and gets attacked again.</p></div>
       <div data-at=".84"><h2>Open the box.</h2><p>It was a pendulum. The engine never knew the word. It found the law anyway, from a wiggling needle, with no units and no help.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13b. What it has already done -->
+<section class="scene paper" data-len="5" data-scene="real" data-name="What it has already done">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-real" viewBox="0 0 700 520"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">this part is not a plan</span><h2>It is running, and here is its record.</h2><p>Small sealed worlds, each with a rule the engine is never shown. It watches, guesses, designs the experiment that separates its guesses, runs it, and keeps what survives. A separate checker, which can see the hidden rule, decides afterwards whether it was right.</p></div>
+      <div data-at=".2"><span class="eyebrow">six sealed worlds</span><h2>Four rules recovered and checked on every possible case.</h2><p>Not "fits the data". Every input the rule can be given, tested. The two it did not close were too large to check exhaustively, and it said so instead of claiming them. On worlds it had never seen, it predicted 663 of 663 next values correctly.</p></div>
+      <div data-at=".4"><span class="eyebrow">a cell that broke the rule</span><h2>It found the thing that did not fit, and went after it.</h2><p>One cell in some worlds ignores the rule every other cell follows. The engine flagged it, proposed the experiment itself, ran it with the cell's inputs held fixed, watched it change anyway, and wrote down the only honest conclusion: something is driving this that I cannot see. Three of three, every time.</p></div>
+      <div data-at=".6"><span class="eyebrow">when its language ran out</span><h2>It noticed its own vocabulary was too small.</h2><p>In some worlds the same input is followed by different outcomes, which no rule of that shape can ever explain. Instead of forcing a fit, the engine declared the failure, tried richer ways of describing what it sees, adopted the cheapest one that worked, re-read everything it had recorded under the new description, and started over. Then recovered the rule.</p></div>
+      <div data-at=".8"><span class="eyebrow">and it changes how it looks</span><h2>It rewires its own interface.</h2><p>It adds a channel when what it reads cannot tell two situations apart. It drops a channel when nothing it believes uses one, then checks the world still makes sense without it. Every change carries its reason, its predicted benefit, and how to undo it.</p><p class="s">Every number on this screen came out of the engine's own evidence file. Nothing here is illustration.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13c. It changes how it works -->
+<section class="scene blue viz-right" data-len="3.5" data-scene="evolve" data-name="It changes how it works">
+  <div class="stage"><div class="grain"></div>
+    <div class="viz"><svg id="s-evolve" viewBox="0 0 700 420"></svg></div>
+    <div class="cap">
+      <div data-at="0"><span class="eyebrow">and it changes how it works</span><h2>Nothing about how it looks is fixed.</h2><p>What it reads, and how it guesses, are both things it is allowed to change. Each change is proposed with a reason, tested against what it has already recorded, and kept or undone. Each is written down.</p></div>
+      <div data-at=".38"><h2>Version one, two, three.</h2><p>The recorded history of its interface on one world. It began reading three channels. It added one when what it read could not separate two situations that behaved differently. It dropped one when nothing it believed used it, and checked the world still made sense without it.</p></div>
+      <div data-at=".72"><h2>Its procedures are things it can breed.</h2><p>When one way of guessing finds nothing, it crosses two of the better ones, changes a step, and tries the child. Children that keep finding nothing are retired. Their record stays.</p><p class="s">Interface history recorded 26 September 2026. Procedure breeding is implemented; no procedure is claimed to be new to science.</p></div>
     </div>
   </div>
 </section>
@@ -449,45 +538,78 @@ a.needslink:hover{ color:var(--acc-b); }
     <a class="corner tr needslink" href="#needs">what it needs →</a>
   </div>
 </section>
-<!-- NEEDS: a separate page, reached from the closing corner -->
+<!-- NEEDS: the funding page, reached from the closing corner -->
 <section id="needs" class="needs" aria-label="What it needs">
   <div class="nwrap">
     <a class="back" href="#top">← back to the story</a>
-    <span class="eyebrow" style="display:block;font-family:var(--mono);font-size:.74rem;color:var(--pink-soft);margin:2.5rem 0 .8rem">what it needs</span>
-    <h2>Twelve people, one room, thirty-six months, $9.8 million.</h2>
-    <p class="lead">The first three years are the slow, expensive part per result, because the instrument and the first laws have to be made from nothing. That is where the money goes. Every number is an estimate and says so. Phase one is $1.3 million and twelve months, with a kill condition written down.</p>
-    <h3>The people, and why each one</h3>
-    <div class="ngrid">
-      <div><b>Instrument lead</b><p>The instrument does not exist. Nobody has built a measuring device with no unit inside it. The whole thesis stands on it, and without it the engine has nothing to look at. This person has already made a physical thing measure something and knows every way hardware lies.</p></div>
-      <div><b>Precision electronics</b><p>The arbiter has to record which of many cells fired first, at nanoseconds, with no clock to lean on. Any noise, any bias between channels, becomes a fake law the engine will proudly discover. This person is the difference between a discovery and an artifact.</p></div>
-      <div><b>Precision electronics, second</b><p>Nothing in the instrument is single-owner. Someone has to build the traps the Destroyer springs, and someone has to check that a push was a real push and not a loose cable.</p></div>
-      <div><b>ML-for-science lead</b><p>Fifteen years of prior work exists: Schmidt and Lipson, SINDy, AI Feynman, self-driving labs. We must not repeat any of it and we must beat all of it. This person knows, to the sentence, where MIYOG differs and where it does not.</p></div>
-      <div><b>Representation researcher</b><p>Stage one is the one part of this that does not exist anywhere: a machine that invents its own variables from raw channels with no human naming. Someone has to spend two years on a problem with no paper at the end of year one.</p></div>
-      <div><b>Representation researcher, second</b><p>One person on an open problem converges on their own taste. Two who are paid to disagree in writing converge on the truth, or prove there is none. The engine has an adversary. So does this seat.</p></div>
-      <div><b>Experimental physicist</b><p>The engine can only be as honest as the boxes it is tested on. Someone has to design hidden systems with traps in them, so the Theorist falls in and the Destroyer can prove it did.</p></div>
-      <div><b>Experimental physicist, second</b><p>The bench with hands needs a person who knows what a real intervention is, what it costs, and when a robot has fooled itself.</p></div>
-      <div><b>Systems engineer</b><p>A result is believed when a stranger can reproduce it. Every seed, every assumption, every run logged, offline, on small hardware. This is unglamorous and it is the reason anyone will trust the ledger.</p></div>
-      <div><b>Systems engineer, second</b><p>A result one person can reproduce is a rumour. Two independent builds of the same engine, or nothing gets published.</p></div>
-      <div><b>The translator</b><p>Without translation, no human can use or fund what the engine finds. With careless translation, the human ceiling sneaks back in through the language. This person builds the bridge and publishes exactly how much is lost crossing it.</p></div>
-      <div><b>Founder</b><p>Someone has to hold the thesis when a result is disappointing, keep the veto clause in the constitution when a result is exciting, and find the eleven people above. The one person not allowed to touch a result, so that no result is ever bent toward a story.</p></div>
+    <div class="nhero">
+      <div class="nhero-l">
+        <span class="eyebrow">what it needs</span>
+        <h2>Four people. One room. Twelve months.</h2>
+        <p class="lead">The engine already opens worlds it has never seen, invents its own rules, designs the experiment that settles them, and changes how it looks when looking is not enough. It does that on a laptop, in worlds small enough to check by hand. What it needs next is harder worlds, hands, and four people who will try to break it.</p>
+      </div>
+      <div class="nhero-r"><svg id="s-needs" viewBox="0 0 420 300" aria-hidden="true"></svg></div>
     </div>
-    <h3>The money, and why each line</h3>
-    <table class="ntab">
-      <tr><td>People, 12 full-time, 36 months</td><td class="v">$5.20M</td><td>Blended $1.74M a year, mostly Bengaluru, two or three senior hires anywhere. People are the project.</td></tr>
-      <tr><td>The instrument, V1</td><td class="v">$0.18M</td><td>Cells to be chosen, an arbiter, shielding, one reference clock used only to check the engine's ruler from outside. Cheap on purpose. Its poverty is the design.</td></tr>
-      <tr><td>A bench with hands, V3</td><td class="v">$1.10M</td><td>Optical table, motion stages, isolation, actuators the Explorer can drive. The line that lets the engine choose its own experiments.</td></tr>
-      <tr><td>One quiet room, Bengaluru</td><td class="v">$0.39M</td><td>2,500 square feet, about ₹3.25 lakh a month, plus $250k for clean power and isolation.</td></tr>
-      <tr><td>Compute for the open problem</td><td class="v">$0.86M</td><td>Sixteen accelerators on demand for three years, plus edge boards to test the twenty-watt target. The end state is small. Finding it is not.</td></tr>
-      <tr><td>Data, bounties, publishing</td><td class="v">$0.45M</td><td>Observatory time, partner datasets, a public bounty for whoever breaks the prototype, and publishing every assumption every version.</td></tr>
-      <tr><td>Twenty percent for being wrong</td><td class="v">$1.64M</td><td>Hardware is late. Hires take longer. A result forces a rebuild.</td></tr>
-      <tr class="tot"><td>Total, 36 months</td><td class="v">$9.8M</td><td>About ₹82 crore. Why not $1M: buys the instrument and one person and nothing after. Why not $100M: does not make an unsolved problem solve faster; until stage one works this is a twelve-person problem.</td></tr>
-    </table>
-    <h3>Phase one</h3>
-    <p class="lead">$1.3M. Twelve months. Five people and a quiet room. An instrument builder who has made a physical thing measure something. An ML-for-science engineer who has read Schmidt and Lipson, SINDy and AI Feynman and can say where this differs. A room quiet enough for unlike processes and a small computer with no network port. And someone who wants to break it: the bounty is real.</p>
-    <p class="lead small">Kill condition: the engine must report the drift of a reference clock without being told which cell is the reference. Miss it and we publish the miss.</p>
+
+    <h3>The four</h3>
+    <p class="sub">Not job descriptions. Four questions, and the person who can answer one of them.</p>
+    <div class="seats">
+      <div class="seat"><span class="n">01</span><b>Can a real thing be measured with nothing in it?</b>
+        <p>You have built something physical that measured something, and you know every way hardware lies. Your job is the first interface to a world we did not write: no unit inside it, and the engine allowed to change it.</p>
+        <span class="tagline">instrument</span></div>
+      <div class="seat"><span class="n">02</span><b>Where exactly is this already known?</b>
+        <p>You have read Schmidt and Lipson, SINDy, AI Feynman, the self-driving lab papers, and you can say to the sentence where this differs and where it does not. You are hired to find the part of this that is not new.</p>
+        <span class="tagline">prior work</span></div>
+      <div class="seat"><span class="n">03</span><b>What can it not say?</b>
+        <p>The open problem: a machine inventing its own variables from raw observation, judged only by prediction and compression. Two years with nothing to show at the end of year one is the normal case.</p>
+        <span class="tagline">the open problem</span></div>
+      <div class="seat"><span class="n">04</span><b>How would you break it?</b>
+        <p>You design the worlds it must open and the traps it should fall into. The bounty is real: the first person to make it believe something false gets paid and named.</p>
+        <span class="tagline">the adversary</span></div>
+    </div>
+
+    <h3>The money</h3>
+    <p class="sub">Twelve months, four people, one quiet room, and the compute to run the open problem. Hover any line.</p>
+    <div class="money" id="money"></div>
+
+    <h3>What twelve months buys, and what it does not</h3>
+    <div class="twocol">
+      <div><b>Buys</b><ul>
+        <li>The first interface to a world nobody wrote, with the engine permitted to change it.</li>
+        <li>The open problem attacked properly, with two people and no paper deadline.</li>
+        <li>Every assumption we keep published, every version, with its count as the score.</li>
+        <li>A written kill condition, agreed before we start, and the miss published if we miss it.</li>
+      </ul></div>
+      <div><b>Does not buy</b><ul>
+        <li>A result. Nobody can sell that.</li>
+        <li>A product. There is nothing to sell in year one and we will not pretend otherwise.</li>
+        <li>Speed. The first stretch is the slow part. That is the whole reason it is worth doing.</li>
+      </ul></div>
+    </div>
+
+    <h3>The kill condition</h3>
+    <p class="lead">Written before the money is spent. The engine must report that a reference clock is drifting without being told which of its channels is the reference. Miss it, and we publish the miss and say what we learned. That sentence is the deal.</p>
+
+    <h3>If you want to put money into this</h3>
+    <div class="contact">
+      <div>
+        <p class="lead">Write to me directly. Tell me what would have to be true for you to fund it, and I will tell you honestly whether it is.</p>
+        <p class="mail"><a id="mailto" href="#">amoghsaikrishnan<span class="at">@</span>gmail.com</a></p>
+        <p class="s">Bengaluru · miyog.si</p>
+      </div>
+      <form class="cform" id="cform" novalidate>
+        <label>your name<input id="cfName" autocomplete="name" placeholder="name"></label>
+        <label>your email<input id="cfMail" type="email" autocomplete="email" placeholder="email"></label>
+        <label>why you are writing<select id="cfWhy"><option>I want to fund this</option><option>I want to work on it</option><option>I think it is wrong, here is where</option><option>Something else</option></select></label>
+        <label>message<textarea id="cfMsg" rows="4" placeholder="what would have to be true?"></textarea></label>
+        <div class="crow"><button class="btn" type="submit">Open in my mail app</button><button class="btn ghost" type="button" id="cfCopy">Copy the address</button></div>
+        <p class="s" id="cfNote">This form has no server and stores nothing. It composes a message in your own mail app.</p>
+      </form>
+    </div>
     <p class="sig">ASK<br><span style="font-size:.9rem;color:var(--pink-soft)">Bengaluru, 2026</span></p>
   </div>
 </section>
+
 <script>
 (function(){
 'use strict';
@@ -573,22 +695,35 @@ R.events=(p,sc)=>{ const cv=$('c-events'); const {ctx,W,H}=fitCanvas(cv); ctx.cl
   R.chain=(p)=>{ const top=[b1,a1,b2,a2,b3,a3,b4]; top.forEach((e,i)=>{ fade(e,seg(p,0,.3)*7>i?1:0); }); fade(t1,seg(p,.25,.32)); drawn(cut,seg(p,.6,.68)); const bot=[c1,d1,c2,d2,c3,d3,c4,d4]; bot.forEach((e,i)=>fade(e,seg(p,.62,.85)*8>i?1:0)); drawn(back,seg(p,.82,.95)); fade(t2,seg(p,.9,.98)); [b2,b3].forEach(e=>{ if(p>.6) e.style.opacity=String(1-seg(p,.6,.75)*.7); }); };
 })();
 
-/* ---------- scene 4: the instrument that has to be invented ---------- */
+/* ---------- scene 4: what it is allowed to know ---------- */
 (function(){ const svg=$('s-device'); const g=el('g',{},svg); const els=[];
-  // ancestors: compass, caliper, hourglass, then this
-  const anc=el('g',{},g); const ax=[80,220,360], names=['compass','caliper','hourglass'];
-  els.push(el('circle',{cx:80,cy:70,r:30},anc,'stroke')); els.push(el('path',{d:'M80 44 L88 70 L80 96 L72 70 Z'},anc,'stroke'));
-  els.push(el('path',{d:'M190 60 H250 M190 60 V90 M225 60 V85 M225 85 H250 M190 90 H250 M232 68 V80 M240 68 V80'},anc,'stroke'));
-  els.push(el('path',{d:'M340 42 H380 L352 70 L380 98 H340 L368 70 Z'},anc,'stroke'));
-  names.forEach((n,i)=>txt(anc,ax[i],120,n,'lab soft','middle'));
-  els.push(el('path',{d:'M410 70 H470 m-10 -7 l10 7 l-10 7'},anc,'stroke soft'));
-  const q=el('rect',{x:490,y:38,width:64,height:64,rx:3},anc,'stroke acc'); els.push(q); const qt=txt(anc,522,80,'?','lab acc','middle'); qt.setAttribute('font-size','30'); txt(anc,522,120,'this','lab acc','middle');
-  const cx=300,cy=380,Rr=170; let hex=''; for(let i=0;i<6;i++){ const a=Math.PI/6+i*Math.PI/3; hex+=(i?' L':'M')+(cx+Rr*Math.cos(a)).toFixed(1)+' '+(cy+Rr*Math.sin(a)).toFixed(1); } els.push(el('path',{d:hex+' Z'},g,'stroke')); els.push(el('circle',{cx,cy,r:Rr*.82},g,'stroke dim'));
-  const cellR=28; const rings=[]; for(let i=0;i<6;i++){ const a=-Math.PI/2+i*Math.PI/3, x=cx+Rr*.62*Math.cos(a), y=cy+Rr*.62*Math.sin(a); const r=el('circle',{cx:x,cy:y,r:cellR,'stroke-dasharray':'4 4'},g,'stroke soft'); rings.push(r); els.push(r); const t=txt(g,x,y+5,'?','lab soft','middle'); t.setAttribute('font-size','16'); els.push(el('path',{d:'M'+(cx+(x-cx)*(1-cellR/(Rr*.62))).toFixed(1)+' '+(cy+(y-cy)*(1-cellR/(Rr*.62))).toFixed(1)+' L'+(cx+(x-cx)*.24).toFixed(1)+' '+(cy+(y-cy)*.24).toFixed(1)},g,'stroke dim')); }
-  els.push(el('rect',{x:cx-40,y:cy-11,width:80,height:22},g,'stroke acc')); let tk=''; for(let i=0;i<10;i++){ const x=cx-34+i*7.5, h=i%3===0?7:5; tk+=' M'+x.toFixed(1)+' '+(cy-h)+' L'+x.toFixed(1)+' '+(cy+h); } els.push(el('path',{d:tk},g,'stroke acc')); txt(g,cx,cy+38,'compares. never assumes.','lab soft','middle');
-  const lab=el('g',{},g); txt(lab,cx-Rr*.9,cy+Rr+10,'unlike processes, to be chosen','lab soft'); txt(lab,cx-Rr*.9,cy+Rr+24,'no dial · no unit · output: which came first','lab soft');
-  els.forEach(e=>{ e.setAttribute('pathLength','1'); e.style.strokeDasharray=e.getAttribute('stroke-dasharray')?e.getAttribute('stroke-dasharray'):'1'; });
-  R.device=(p)=>{ const n=els.length; els.forEach((e,i)=>{ const f=clamp(seg(p,0,.55)*n*1.15-i,0,1); if(!e.getAttribute('stroke-dasharray')||e.getAttribute('stroke-dasharray')==='1') e.style.strokeDashoffset=String(1-f); else e.style.opacity=String(f); }); fade(lab,seg(p,.55,.65)); rings.forEach((r,i)=>{ r.setAttribute('class','stroke'+(p>.84&&i===1?' acc':' soft')); r.setAttribute('stroke-width',p>.84&&i===1?'3':'1.4'); }); };
+  const cx=300, cy=300;
+  // the world: a field of events arriving in order
+  const ev=el('g',{},g); const R0=RNG(4);
+  for(let i=0;i<70;i++){ const x=40+R0.next()*520, y=40+R0.next()*180; els.push(el('path',{d:'M'+x.toFixed(0)+' '+y.toFixed(0)+' v10'},ev,'stroke soft')); }
+  txt(g,40,30,'events, in the order they arrive','lab soft');
+  // the engine
+  const box=el('rect',{x:cx-90,y:cy+40,width:180,height:110,rx:3},g,'stroke acc'); els.push(box);
+  txt(g,cx,cy+100,'the engine','lab','middle');
+  // channels it chose to read, drawn as open sockets; one struck out (dropped), one added
+  const chans=[['a channel it reads',-1],['a channel it reads',0],['a channel it added',1],['a channel it dropped',2]];
+  const XS=[95,232,368,505];
+  const cg=[];
+  chans.forEach(([label,kind],i)=>{ const x=XS[i];
+    const gg=el('g',{},g); const r=el('rect',{x:x-58,y:196,width:116,height:38,rx:2},gg,'stroke'+(kind===1?' acc':kind===2?' dim':''));
+    const t=txt(gg,x,220,label,'lab'+(kind===1?' acc':' soft'),'middle'); t.setAttribute('font-size','10.5');
+    els.push(r); els.push(el('path',{d:'M'+x+' 234 L'+(cx+(x-cx)*0.22)+' '+(cy+40)},gg,'stroke dim'));
+    if(kind===2){ const k=el('path',{d:'M'+(x-58)+' 196 L'+(x+58)+' 234'},gg,'stroke acc'); k.setAttribute('stroke-width','2'); els.push(k); }
+    cg.push(gg); });
+  const up=el('path',{d:'M300 190 V150 m-7 10 l7 -10 l7 10'},g,'stroke dim'); els.push(up);
+  // what comes out: experiments back into the world
+  const out=el('path',{d:'M390 495 H520 V80 m-7 10 l7 -10 l7 10'},g,'stroke acc'); els.push(out);
+  const ot=txt(g,400,515,'and it pushes back: the next experiment','lab acc');
+  const lab=el('g',{},g); txt(lab,40,560,'given: that distinguishable events exist and can reach it','lab soft'); txt(lab,40,578,'not given: units, names, numbers, physics, or what to listen to','lab soft');
+  els.forEach(e=>{ e.setAttribute('pathLength','1'); e.style.strokeDasharray='1'; });
+  R.device=(p)=>{ const n=els.length; els.forEach((e,i)=>{ const f=clamp(seg(p,0,.42)*n*1.25-i,0,1); e.style.strokeDashoffset=String(1-f); });
+    cg.forEach((gg,i)=>fade(gg, seg(p,.28+i*.09,.36+i*.09)));
+    fade(ot,seg(p,.62,.72)); fade(lab,seg(p,.8,.9)); };
 })();
 
 /* ---------- scene 5: sandbox ---------- */
@@ -657,7 +792,7 @@ R.die=(p,sc)=>{ const cv=$('c-die'); const {ctx,W,H}=fitCanvas(cv); ctx.clearRec
 
 /* ---------- title and closing: the full stop is the first event ---------- */
 R.title=(p)=>{ const c=$('tcard'); c.classList.add('in'); const s=1+ease(seg(p,.15,.85))*7; c.style.transform='translate(-50%,-50%) scale('+s+')'; c.style.opacity=String(1-seg(p,.55,.9)); $('tcl').style.opacity=String(.85*(1-seg(p,.1,.35))); $('tcr').style.opacity=String(.85*(1-seg(p,.1,.35))); };
-R.closing=(p)=>{ const c=$('ccard'); c.classList.add('in'); const s=1.8-ease(seg(p,0,.7))*.8; c.style.transform='translate(-50%,-50%) scale('+s+')'; c.style.opacity=String(seg(p,0,.4)); };
+
 
 /* ---------- Lila, side by side ---------- */
 (function(){ const svg=$('s-lila'); if(!svg) return; const g=el('g',{},svg); const box=(x,y,w,label,cls)=>{ const gg=el('g',{},g); el('rect',{x,y,width:w,height:64,rx:2},gg,'stroke'+(cls||'')); const t=txt(gg,x+w/2,y+38,label,'lab','middle'); t.setAttribute('font-size','13'); return gg; }; const arrow=(x1,x2,y)=>el('path',{d:'M'+x1+' '+y+' H'+x2+' m-10 -7 l10 7 l-10 7'},g,'stroke soft');
@@ -709,6 +844,123 @@ R.map=(p,sc)=>{ const cv=$('c-map'); const {ctx,W,H}=fitCanvas(cv); ctx.clearRec
 
 /* ---------- needs page routing ---------- */
 (function(){ const apply=()=>{ const on=location.hash==='#needs'; document.body.classList.toggle('show-needs',on); if(on) scrollTo(0,0); else if(location.hash==='#top'){ history.replaceState(null,'',' '); } tick(); }; addEventListener('hashchange',apply); apply(); })();
+
+
+/* ---------- what it has already done: the engine's own record ---------- */
+(function(){ const svg=$('s-real'); if(!svg) return; const g=el('g',{},svg);
+  const nums=el('g',{},g);
+  const n1=txt(nums,40,96,'4 / 6','big'); n1.setAttribute('font-size','62');
+  const c1a=txt(nums,40,122,'hidden rules recovered and then verified','lab soft'); const c1b=txt(nums,40,138,'on every possible case, by a separate checker','lab soft');
+  const n2=txt(nums,390,96,'663 / 663','big'); n2.setAttribute('font-size','62');
+  const c2a=txt(nums,390,122,'next values predicted correctly on worlds','lab soft'); const c2b=txt(nums,390,138,'it had never been shown','lab soft');
+  el('path',{d:'M40 160 H660'},nums,'stroke dim');
+  const head=txt(g,40,190,'six sealed worlds. each bar is one world; the width is how many cases its rule could be given.','lab soft');
+  const W=[['1D',64,true],['2D',243,true],['3D',16384,false],['1D',27,true],['2D',243,true],['3D',16384,false]];
+  const cols=[]; const maxw=560;
+  W.forEach(([d,dom,ok],i)=>{ const y=215+i*34; const gg=el('g',{},g);
+    const w = 40 + (Math.log(dom)/Math.log(16384))*(maxw-120);
+    el('rect',{x:40,y:y,width:w,height:18,rx:1},gg,'stroke'+(ok?' acc':' dim'));
+    if(ok){ const f=el('rect',{x:40,y:y,width:w,height:18},gg,'fill acc'); f.setAttribute('opacity','.14'); }
+    const t=txt(gg,46,y+13,d+' · '+dom.toLocaleString()+' cases','lab'); t.setAttribute('font-size','9.5');
+    const m=txt(gg,w+50,y+13,ok?'checked on every case':'too large to check; said so instead of claiming it','lab'+(ok?' acc':' soft')); m.setAttribute('font-size','9.5');
+    cols.push(gg); });
+  const three=[['a cell that ignored the rule','probed with its inputs held fixed; it changed anyway. 3 of 3.'],
+               ['its language ran out','declared the failure, replaced how it describes what it sees, recovered the rule.'],
+               ['it rewired its own interface','added a channel, dropped a channel, measured both. version three.']];
+  const cards=[];
+  three.forEach(([t1,t2],i)=>{ const y=440+i*38; const gg=el('g',{},g);
+    el('path',{d:'M40 '+(y-14)+' H660'},gg,'stroke dim');
+    const a=txt(gg,40,y+2,t1,'lab acc'); a.setAttribute('font-size','11');
+    const b=txt(gg,250,y+2,t2,'lab soft'); b.setAttribute('font-size','9.5');
+    cards.push(gg); });
+  R.real=(p)=>{ fade(nums,seg(p,.06,.2)); fade(head,seg(p,.16,.24));
+    cols.forEach((c,i)=>fade(c,seg(p,.2+i*.028,.27+i*.028)));
+    cards.forEach((c,i)=>fade(c,seg(p,.38+i*.2,.46+i*.2))); };
+})();
+
+/* ---------- the funding page ---------- */
+(function(){
+  const box=$('money'); if(!box) return;
+  const L=[["Four people, twelve months",0.86,"Instrument, prior work, the open problem, and the adversary. Fully loaded, mostly Bengaluru, one senior hire wherever they are. People are the project; everything else is what they need."],
+           ["Compute for the open problem",0.22,"The engine is small when it is finished and large while it is being found. Accelerators on demand, plus small boards to see how far down it compresses."],
+           ["The first interface",0.09,"Unlike processes, an arbiter, isolation, and one reference the engine is not told about, so it has something to catch drifting."],
+           ["One quiet room, Bengaluru",0.13,"About ₹3.25 lakh a month plus clean power and isolation. It has to be quiet in the boring, physical sense."],
+           ["Data, bounties, publishing",0.10,"Partner datasets, and a public bounty for whoever breaks the prototype. Paying people to destroy us is cheaper than being destroyed later."],
+           ["Twenty percent for being wrong",0.22,"Hardware is late. Hires take longer. A result forces a rebuild. This is the honest number for a project whose middle stage does not exist yet."]];
+  const tot=L.reduce((a,b)=>a+b[1],0);
+  box.innerHTML=L.map(([n,v,w])=>`<div class="mrow" tabindex="0"><div><div class="ml"><b>${n}</b><span>${Math.round(v/tot*100)}%</span></div><div class="mbar"><i data-w="${v/L[0][1]*100}"></i></div></div><div class="mv">$${v.toFixed(2)}M</div><div class="why">${w}</div></div>`).join('')
+    +`<div class="mtot"><span>twelve months · estimate · about ₹13 crore</span><b id="mtotv">$0.0M</b></div>`;
+  let done=false;
+  new IntersectionObserver(es=>es.forEach(e=>{ if(!e.isIntersecting||done) return; done=true;
+    box.querySelectorAll('.mbar i').forEach(i=>i.style.width=i.dataset.w+'%');
+    const t0=performance.now(); const step=n=>{ const p=Math.min(1,(n-t0)/1200); $('mtotv').textContent='$'+(tot*(1-Math.pow(1-p,3))).toFixed(2)+'M'; if(p<1) requestAnimationFrame(step); }; requestAnimationFrame(step); }),{threshold:.3}).observe(box);
+
+  // hero diagram: four seats around one room
+  const svg=$('s-needs');
+  if(svg){ const NS='http://www.w3.org/2000/svg'; const mk=(t,a,cls)=>{ const e=document.createElementNS(NS,t); for(const k in a)e.setAttribute(k,a[k]); if(cls)e.setAttribute('class',cls); svg.appendChild(e); return e; };
+    mk('rect',{x:130,y:105,width:160,height:90,rx:3},'stroke acc'); const tx=document.createElementNS(NS,'text'); tx.setAttribute('x',210); tx.setAttribute('y',155); tx.setAttribute('text-anchor','middle'); tx.textContent='one room'; svg.appendChild(tx);
+    [[60,60,'instrument'],[360,60,'prior work'],[60,240,'the open problem'],[360,240,'the adversary']].forEach(([x,y,l],i)=>{
+      const c=mk('circle',{cx:x,cy:y,r:9},'stroke acc'); const t=document.createElementNS(NS,'text'); t.setAttribute('x',x); t.setAttribute('y',y+(y<150?-16:26)); t.setAttribute('text-anchor','middle'); t.textContent=l; svg.appendChild(t);
+      mk('path',{d:`M${x} ${y} L${210+(x<210?-80:80)} ${150+(y<150?-45:45)}`},'stroke');
+      c.style.opacity=0; c.style.transition='opacity .5s '+(i*.12)+'s'; requestAnimationFrame(()=>c.style.opacity=1); });
+  }
+
+  // contact
+  const ADDR=['amoghsaikrishnan','gmail.com'].join('@');
+  const a=$('mailto'); if(a) a.href='mailto:'+ADDR;
+  const f=$('cform');
+  if(f){ f.addEventListener('submit',e=>{ e.preventDefault();
+      const n=$('cfName').value.trim(), m=$('cfMail').value.trim(), w=$('cfWhy').value, msg=$('cfMsg').value.trim();
+      const subj=encodeURIComponent('MIYOG · '+w+(n?' · '+n:''));
+      const body=encodeURIComponent((msg||'')+'\n\n'+(n?n+'\n':'')+(m?m+'\n':'')+'\nsent from miyog.si');
+      window.location.href='mailto:'+ADDR+'?subject='+subj+'&body='+body;
+      $('cfNote').textContent='Your mail app should be opening. If it did not, the address is '+ADDR+'.'; });
+    $('cfCopy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(ADDR); $('cfNote').textContent='Copied: '+ADDR; }catch(_){ $('cfNote').textContent='The address is '+ADDR; } }); }
+})();
+
+
+/* ---------- the closing: the first event, returning ---------- */
+(function(){
+  const sc=document.querySelector('.scene.closing'); if(!sc) return;
+  const stage=sc.querySelector('.stage'); const cv=document.createElement('canvas');
+  cv.setAttribute('aria-hidden','true'); cv.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+  stage.insertBefore(cv,stage.firstChild); const ctx=cv.getContext('2d');
+  R.closing=(p)=>{
+    const c=$('ccard'); c.classList.add('in');
+    const s=1.8-ease(seg(p,0,.7))*.8; c.style.transform='translate(-50%,-50%) scale('+s+')'; c.style.opacity=String(seg(p,0,.4));
+    const dpr=Math.min(2,devicePixelRatio||1); const W=cv.width=cv.clientWidth*dpr, H=cv.height=cv.clientHeight*dpr; ctx.clearRect(0,0,W,H);
+    if(reduced) return;
+    const acc=cssVar(sc,'--acc'); const n=Math.floor(seg(p,.35,1)*46); const narrow=cv.clientWidth<760;
+    const y=narrow?H*.58:H*.70, x0=narrow?W*.12:W*.18, x1=narrow?W*.88:W*.82;
+    ctx.strokeStyle=acc; ctx.lineWidth=1*dpr; ctx.globalAlpha=.5;
+    for(let i=0;i<n;i++){ const x=x0+(x1-x0)*i/45; ctx.beginPath(); ctx.moveTo(x,y-H*.018); ctx.lineTo(x,y+H*.018); ctx.stroke(); }
+    if(n>0){ ctx.globalAlpha=1; ctx.lineWidth=3*dpr; ctx.beginPath(); ctx.moveTo(x0,y-H*.028); ctx.lineTo(x0,y+H*.028); ctx.stroke(); }
+    ctx.globalAlpha=1;
+  };
+})();
+
+
+/* ---------- it changes how it works ---------- */
+(function(){ const svg=$('s-evolve'); if(!svg) return; const g=el('g',{},svg);
+  const V=[['v1',['itself','left','right']],['v2',['itself','left','right','own value, one tick ago']],['v3',['itself','right','own value, one tick ago']]];
+  const vers=[];
+  V.forEach(([v,ch],i)=>{ const x=40+i*225; const gg=el('g',{},g);
+    el('rect',{x:x,y:40,width:200,height:26+ch.length*18,rx:2},gg,'stroke'+(i===2?' acc':''));
+    const t=txt(gg,x+10,58,v,'lab acc'); t.setAttribute('font-size','12');
+    ch.forEach((c,j)=>{ const cc=txt(gg,x+12,80+j*18,'· '+c,'lab'); cc.setAttribute('font-size','10'); });
+    if(i>0){ el('path',{d:'M'+(x-30)+' 53 H'+(x-4)+' m-8 -6 l8 6 l-8 6'},gg,'stroke dim'); const r=txt(gg,x-17,42,i===1?'added':'dropped','lab soft','middle'); r.setAttribute('font-size','9'); }
+    vers.push(gg); });
+  const why=el('g',{},g);
+  const w1=txt(why,40,168,'v1 → v2   the same input was followed by different outputs, on many cells: a channel was added.','lab soft'); w1.setAttribute('font-size','9.5');
+  const w2=txt(why,40,186,'v2 → v3   no surviving rule read the left neighbour: dropped, tested against the record, kept.','lab soft'); w2.setAttribute('font-size','9.5');
+  el('path',{d:'M40 210 H660'},g,'stroke dim');
+  const nodes=[[120,270,1],[300,270,1],[480,270,1],[210,340,1],[390,340,0],[210,400,1]];
+  const edges=[[0,3],[1,3],[1,4],[2,4],[3,5]];
+  const eg=edges.map(([a,b])=>{ const p=el('path',{d:`M${nodes[a][0]} ${nodes[a][1]+12} L${nodes[b][0]} ${nodes[b][1]-12}`},g,'stroke dim'); p.setAttribute('pathLength','1'); p.style.strokeDasharray='1'; return p; });
+  const ng=nodes.map(([x,y,alive])=>{ const gg=el('g',{},g); el('circle',{cx:x,cy:y,r:11},gg,'stroke'+(alive?' acc':' dim')); if(!alive) el('path',{d:`M${x-5} ${y-5} L${x+5} ${y+5} M${x+5} ${y-5} L${x-5} ${y+5}`},gg,'stroke soft'); return gg; });
+  const leg=txt(g,40,235,'procedures: seeds, their children, one retired. illustrative of the mechanism.','lab soft'); leg.setAttribute('font-size','9.5');
+  R.evolve=(p)=>{ vers.forEach((v,i)=>fade(v,seg(p,.04+i*.1,.12+i*.1))); fade(why,seg(p,.34,.44)); fade(leg,seg(p,.66,.74)); ng.forEach((n,i)=>fade(n,seg(p,.7+i*.04,.76+i*.04))); eg.forEach((e,i)=>drawn(e,seg(p,.74+i*.04,.82+i*.04))); };
+})();
 
 /* ---------- index ---------- */
 (function(){ const idx=$('index'), btn=$('indexBtn'), list=$('indexList'); scenes.forEach((s,i)=>{ const li=document.createElement('li'); li.innerHTML='<i>'+String(i).padStart(2,'0')+'</i><span>'+s.dataset.name+'</span>'; li.addEventListener('click',()=>{ idx.classList.remove('open'); btn.setAttribute('aria-expanded','false'); s.scrollIntoView({behavior:reduced?'auto':'smooth'}); }); list.appendChild(li); }); btn.addEventListener('click',()=>{ const o=idx.classList.toggle('open'); btn.setAttribute('aria-expanded',String(o)); btn.textContent=o?'index ↑':'index ↓'; }); document.addEventListener('click',(e)=>{ if(!idx.contains(e.target)){ idx.classList.remove('open'); btn.textContent='index ↓'; } }); window.MIYOG_indexItems=[...list.children]; })();
